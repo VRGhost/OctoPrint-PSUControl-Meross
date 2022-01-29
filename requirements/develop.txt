@@ -1,10 +1,5 @@
-black
 pytest
 pytest-mock
 pytest-cov
-flake8
-flake8-import-order
-pep8-naming
-flake8-bugbear
 
 -r production.txt
