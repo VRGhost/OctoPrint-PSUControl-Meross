@@ -1,6 +1,16 @@
 """Install package."""
 
 import setuptools
+from pathlib import Path
+
+def read_production_requires():
+    src_file = Path(__file__).resolve().parent / 'requirements' / 'production.txt'
+    out = []
+    for line in open(src_file):
+        line = line.strip()
+        if line:
+            out.append(line)
+    return tuple(sorted(out))
 
 setuptools.setup(
     name="OctoPrint-PSUControl-Meross",
@@ -21,5 +31,6 @@ setuptools.setup(
     entry_points={
         "octoprint.plugin": ["psucontrol_meross = octoprint_psucontrol_meross"]
     },
+    install_requires=read_production_requires(),
     python_requires=">=3.6",
 )
