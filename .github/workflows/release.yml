@@ -17,6 +17,7 @@ jobs:
       - name: Install dependencies
         run: pip install build bump2version
       - name: Bump version
+        id: apply_tags
         run: |
           git config --global user.email "github+actions@gmail.com"
           git config --global user.name "Actions"
@@ -29,4 +30,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: dist/*.zip
-          tag_name: ${{ steps.vars.outputs.release_tag }}
+          tag_name: ${{ steps.apply_tags.outputs.release_tag }}
