@@ -7,9 +7,9 @@ __copyright__ = (
 __plugin_name__ = "PSU Control - Meross"
 __plugin_pythoncompat__ = ">=2.7,<4"
 
-from .plugin import PSUControl_Meross
+from .plugin import PSUControlMeross
 
 
 def __plugin_load__():
     global __plugin_implementation__
-    __plugin_implementation__ = PSUControl_Meross()
+    __plugin_implementation__ = PSUControlMeross()

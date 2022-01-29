@@ -1,7 +1,7 @@
 import octoprint.plugin
 
 
-class PSUControl_Meross(
+class PSUControlMeross(
     octoprint.plugin.StartupPlugin, octoprint.plugin.RestartNeedingPlugin
 ):
     def __init__(self):
@@ -11,7 +11,8 @@ class PSUControl_Meross(
         psucontrol_helpers = self._plugin_manager.get_helpers("psucontrol")
         if not psucontrol_helpers or "register_plugin" not in psucontrol_helpers.keys():
             self._logger.warning(
-                "The version of PSUControl that is installed does not support plugin registration."
+                "The version of PSUControl that is installed "
+                "does not support plugin registration."
             )
             return
 
