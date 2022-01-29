@@ -4,7 +4,7 @@ import setuptools
 
 setuptools.setup(
     name="OctoPrint-PSUControl-Meross",
-    version="0.0.1",
+    version="0.0.2",
     description="Adds Meross Smart Plug support to OctoPrint-PSUControl",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
