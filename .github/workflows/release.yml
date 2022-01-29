@@ -16,16 +16,16 @@ jobs:
         uses: actions/setup-python@v2
       - name: Install dependencies
         run: pip install build bump2version
+      - name: Build packages
+        run: python -m build --outdir dist/
       - name: Bump version
         id: apply_tags
         run: |
           git config --global user.email "github+actions@gmail.com"
           git config --global user.name "Actions"
-          bump2version patch
+          bump2version patch --allow-dirty
           git push --follow-tags
           echo ::set-output name=release_tag::$(git tag --points-at HEAD | grep '^v' | sort -nr | head -n1)
-      - name: Build packages
-        run: python -m build --outdir dist/
       - name: Release
         uses: softprops/action-gh-release@v1
         with:

@@ -1,2 +1,0 @@
-OctoPrint>=1.7.3
-meross-iot>=0.4

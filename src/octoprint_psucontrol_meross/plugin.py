@@ -5,7 +5,15 @@ class PSUControlMeross(
     octoprint.plugin.StartupPlugin, octoprint.plugin.RestartNeedingPlugin
 ):
     def __init__(self):
+        super().__init__()
+        self.config = {}
         self.status = False
+
+    def get_settings_defaults(self):
+        return {
+            "user_email": "user@example.com",
+            "user_password": "password",
+        }
 
     def on_startup(self, host, port):
         psucontrol_helpers = self._plugin_manager.get_helpers("psucontrol")
