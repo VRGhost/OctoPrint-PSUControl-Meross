@@ -1,30 +1,14 @@
 name: Release
 on:
-  workflow_run:
-    workflows: ["CI"]
-    branches: [main]
-    types:
-      - completed
+  push:
+    tags:
+      - "v*.*.*"
 
 jobs:
-  publish:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  upload-gh-release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-      - name: Install dependencies
-        run: pip install build bump2version
-      - name: Build packages
-        run: python -m build --outdir dist/
-      - name: Bump version
-        run: |
-          git config --global user.email "github+actions@gmail.com"
-          git config --global user.name "Actions"
-          bump2version patch --allow-dirty
-          git push --follow-tags
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: dist/*.zip
+        - name: Release
+          uses: softprops/action-gh-release@v1
+          with:
+            files: dist/*.zip
