@@ -15,27 +15,16 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
       - name: Install dependencies
-        run: pip install build
+        run: pip install build bump2version
       - name: Build packages
         run: python -m build --outdir dist/
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: dist/*.zip
-  bump-version: # Bump version for the next release
-    needs: publish
-    runs-on: ubuntu-latest
-    # Bump version in the PR that targets the "main" branch
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-      - name: Install dependencies
-        run: |
-          pip install bump2version
       - name: Bump version
         run: |
           git config --global user.email "github+actions@gmail.com"
           git config --global user.name "Actions"
-          bump2version patch
+          bump2version patch --allow-dirty
           git push --follow-tags
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.zip
