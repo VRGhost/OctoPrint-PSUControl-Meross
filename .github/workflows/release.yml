@@ -1,0 +1,41 @@
+name: Release
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types:
+      - completed
+
+jobs:
+  publish:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - name: Install dependencies
+        run: pip install build
+      - name: Build packages
+        run: python -m build --outdir dist/
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.zip
+  bump-version: # Bump version for the next release
+    needs: publish
+    runs-on: ubuntu-latest
+    # Bump version in the PR that targets the "main" branch
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - name: Install dependencies
+        run: |
+          pip install bump2version
+      - name: Bump version
+        run: |
+          git config --global user.email "github+actions@gmail.com"
+          git config --global user.name "Actions"
+          bump2version patch
+          git push --follow-tags
