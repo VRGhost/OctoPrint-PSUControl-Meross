@@ -1,6 +1,5 @@
 import octoprint.plugin
 
-from meross_iot.http_api import MerossHttpClient
 
 class PSUControlMeross(
     octoprint.plugin.StartupPlugin,
