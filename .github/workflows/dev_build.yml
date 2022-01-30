@@ -2,7 +2,7 @@ name: Release
 on:
   workflow_run:
     workflows: ["CI"]
-    branches: [main]
+    branches: [develop]
     types:
       - completed
 
@@ -16,20 +16,16 @@ jobs:
         uses: actions/setup-python@v2
       - name: Install dependencies
         run: pip install build bump2version
-      - name: Build packages
-        run: python -m build --outdir dist/
       - name: Bump version
         id: apply_tags
         run: |
-          git config --global user.email "github+actions@gmail.com"
-          git config --global user.name "Actions"
-          bump2version patch --allow-dirty
-          git push --follow-tags
-          echo ::set-output name=release_tag::$(git tag --points-at HEAD | grep '^v' | sort -nr | head -n1)
-      - name: Release
-        uses: softprops/action-gh-release@v1
+          bump2version --allow-dirty --no-commit --no-tag dev
+          python python -m build --outdir dist/
+      - name: Artifact
+        uses: actions/upload-artifact@v2
         with:
+          name: dev-build
           files: |
             dist/*.whl
             dist/*.tar.gz
-          tag_name: ${{ steps.apply_tags.outputs.release_tag }}
+          retention-days: 14
