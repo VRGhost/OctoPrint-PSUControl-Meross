@@ -1,11 +1,15 @@
+import flask
 import octoprint.plugin
+
+from meross_iot.http_api import MerossHttpClient
 
 
 class PSUControlMeross(
     octoprint.plugin.StartupPlugin,
-    octoprint.plugin.RestartNeedingPlugin,
     octoprint.plugin.TemplatePlugin,
     octoprint.plugin.SettingsPlugin,
+    octoprint.plugin.SimpleApiPlugin,
+    octoprint.plugin.AssetPlugin,
 ):
     def __init__(self):
         super().__init__()
@@ -18,13 +22,20 @@ class PSUControlMeross(
             "user_password": "",
         }
 
+    def get_meross_http_client(self):
+        return MerossHttpClient
+
     def get_template_vars(self):
-        return super().get_template_vars() | {
-            "meross_status": {
-                "client_obj": self.get_meross_http_client(),
-                "connection_ok": "HELLO WORLD!",
+        out = super().get_template_vars()
+        out.update(
+            {
+                "meross_status": {
+                    "client_obj": self.get_meross_http_client(),
+                    "connection_ok": "HELLO WORLD!",
+                }
             }
-        }
+        )
+        return out
 
     def on_startup(self, host, port):
         psucontrol_helpers = self._plugin_manager.get_helpers("psucontrol")
@@ -48,3 +59,21 @@ class PSUControlMeross(
 
     def get_psu_state(self):
         return self.status
+
+    # Setting the location of the assets such as javascript
+    def get_assets(self):
+        return {
+            "js": ["js/octoprint_psucontrol_settings.js"],
+        }
+
+    def get_api_commands(self):
+        return {
+            "try_meross_login": (),
+        }
+
+    def on_event(self, event, payload):
+        if event == "try_meross_login":
+            out = {"success": bool(self.get_meross_http_client())}
+        else:
+            raise NotImplementedError(event)
+        return flask.jsonify(res=out)

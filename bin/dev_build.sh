@@ -8,4 +8,4 @@ cd "${PROJ_ROOT}"
 pytest
 rm -f ./dist/*
 bump2version --allow-dirty --no-commit --no-tag dev
-python -m build --outdir dist/
+python setup.py sdist
