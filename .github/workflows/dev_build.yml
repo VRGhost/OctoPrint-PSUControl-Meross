@@ -1,5 +1,6 @@
 name: Build Dev Artifact
 on:
+  workflow_dispatch: {}
   workflow_run:
     workflows: ["CI"]
     branches: [develop]
@@ -20,7 +21,7 @@ jobs:
         id: apply_tags
         run: |
           bump2version --allow-dirty --no-commit --no-tag dev
-          python python -m build --outdir dist/
+          python -m build --outdir dist/
       - name: Artifact
         uses: actions/upload-artifact@v2
         with:

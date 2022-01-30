@@ -2,7 +2,10 @@ import octoprint.plugin
 
 
 class PSUControlMeross(
-    octoprint.plugin.StartupPlugin, octoprint.plugin.RestartNeedingPlugin
+    octoprint.plugin.StartupPlugin,
+    octoprint.plugin.RestartNeedingPlugin,
+    octoprint.plugin.TemplatePlugin,
+    octoprint.plugin.SettingsPlugin,
 ):
     def __init__(self):
         super().__init__()
