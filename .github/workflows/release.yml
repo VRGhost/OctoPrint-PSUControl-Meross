@@ -29,5 +29,7 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/*.whl
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
           tag_name: ${{ steps.apply_tags.outputs.release_tag }}
