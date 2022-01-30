@@ -20,6 +20,8 @@ jobs:
       - name: Bump version
         id: apply_tags
         run: |
+          git config --global user.email "github+actions@gmail.com"
+          git config --global user.name "Actions"
           bump2version --no-tag dev
           git push
           python -m build --outdir dist/
