@@ -44,9 +44,9 @@ def test_on_startup(
 ):
     if psucontrol_state is None:
         plugin_manager.get_helpers.side_effect = lambda key: None
-    elif psucontrol_state is "no_key":
+    elif psucontrol_state == "no_key":
         psucontrol_plugin.pop("register_plugin")
-    elif psucontrol_state is "ok":
+    elif psucontrol_state == "ok":
         pass
     else:
         raise NotImplementedError(psucontrol_state)
