@@ -1,0 +1,31 @@
+name: Release
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [develop]
+    types:
+      - completed
+
+jobs:
+  publish:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - name: Install dependencies
+        run: pip install build bump2version
+      - name: Bump version
+        id: apply_tags
+        run: |
+          bump2version --allow-dirty --no-commit --no-tag dev
+          python python -m build --outdir dist/
+      - name: Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: dev-build
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+          retention-days: 14
