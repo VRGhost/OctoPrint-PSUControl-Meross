@@ -1,5 +1,6 @@
 import octoprint.plugin
 
+from meross_iot.http_api import MerossHttpClient
 
 class PSUControlMeross(
     octoprint.plugin.StartupPlugin,
@@ -14,8 +15,16 @@ class PSUControlMeross(
 
     def get_settings_defaults(self):
         return {
-            "user_email": "user@example.com",
-            "user_password": "password",
+            "user_email": "",
+            "user_password": "",
+        }
+
+    def get_template_vars(self):
+        return super().get_template_vars() | {
+            "meross_status": {
+                "client_obj": self.get_meross_http_client(),
+                "connection_ok": "HELLO WORLD!",
+            }
         }
 
     def on_startup(self, host, port):
