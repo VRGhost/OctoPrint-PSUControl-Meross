@@ -1,7 +1,9 @@
+from pathlib import Path
+
 import flask
 import octoprint.plugin
 
-from meross_iot.http_api import MerossHttpClient
+from . import meross_client
 
 
 class PSUControlMeross(
@@ -11,31 +13,19 @@ class PSUControlMeross(
     octoprint.plugin.SimpleApiPlugin,
     octoprint.plugin.AssetPlugin,
 ):
-    def __init__(self):
-        super().__init__()
-        self.config = {}
-        self.status = False
+    def initialize(self):
+        super().initialize()
+        cache_file = Path(self.get_plugin_data_folder()) / "meross_cloud.cache"
+        self.meross = meross_client.OctoprintPsuMerossClient(
+            cache_file=cache_file,
+            logger=self._logger.getChild("meross_client"),
+        )
 
     def get_settings_defaults(self):
         return {
             "user_email": "",
             "user_password": "",
         }
-
-    def get_meross_http_client(self):
-        return MerossHttpClient
-
-    def get_template_vars(self):
-        out = super().get_template_vars()
-        out.update(
-            {
-                "meross_status": {
-                    "client_obj": self.get_meross_http_client(),
-                    "connection_ok": "HELLO WORLD!",
-                }
-            }
-        )
-        return out
 
     def on_startup(self, host, port):
         psucontrol_helpers = self._plugin_manager.get_helpers("psucontrol")
@@ -50,15 +40,13 @@ class PSUControlMeross(
         psucontrol_helpers["register_plugin"](self)
 
     def turn_psu_on(self):
-        self._logger.info("ON")
-        self.status = True
+        self.meross.set_status(True)
 
     def turn_psu_off(self):
-        self._logger.info("OFF")
-        self.status = False
+        self.meross.set_status(False)
 
     def get_psu_state(self):
-        return self.status
+        return self.meross.get_status()
 
     # Setting the location of the assets such as javascript
     def get_assets(self):
@@ -68,12 +56,20 @@ class PSUControlMeross(
 
     def get_api_commands(self):
         return {
-            "try_meross_login": (),
+            "try_meross_login": ("user_email", "user_password"),
         }
 
-    def on_event(self, event, payload):
+    def on_api_command(self, event, payload):
+        self._logger.info("ON_EVENT {event!r}")
         if event == "try_meross_login":
-            out = {"success": bool(self.get_meross_http_client())}
+            out = {
+                "success": self.meross.login(
+                    payload["user_email"], payload["user_password"], sync=True
+                )
+            }
         else:
             raise NotImplementedError(event)
-        return flask.jsonify(res=out)
+        return flask.jsonify(out)
+
+    def on_api_get(self, request):
+        return flask.jsonify(foo="bar")

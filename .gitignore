@@ -281,3 +281,5 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/vim,python,windows,linux,osx,sublimetext,git
+
+*.tmp

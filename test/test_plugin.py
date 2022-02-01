@@ -24,18 +24,17 @@ def plugin_manager(mocker, psucontrol_plugin):
 def psucontrol_meross(mocker, plugin_manager):
     out = octoprint_psucontrol_meross.plugin.PSUControlMeross()
     out._logger = mocker.MagicMock(
-        name="mock_logger", spec=["warning", "info", "debug"]
+        name="mock_logger", spec=["warning", "info", "debug", "getChild"]
     )
     out._plugin_manager = plugin_manager
+    # Called by the plugin core after performing all injections.
+    # Override this to initialize your implementation.
+    out.initialize()
     return out
 
 
 def test_get_assets(psucontrol_meross):
     assert psucontrol_meross.get_assets()
-
-
-def test_get_template_vars(psucontrol_meross):
-    assert psucontrol_meross.get_template_vars()
 
 
 @pytest.mark.parametrize("psucontrol_state", [None, "no_key", "ok"])
