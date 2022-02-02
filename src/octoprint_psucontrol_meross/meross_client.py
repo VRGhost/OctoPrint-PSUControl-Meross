@@ -6,7 +6,7 @@ import shelve
 import threading
 import time
 
-from dataclasses import dataclass
+import dataclasses
 from pathlib import Path
 from typing import Callable, Iterable, Tuple
 
@@ -19,17 +19,23 @@ from .exc import CacheGetError, MerossClientError
 from .threaded_worker import ThreadedWorker
 
 
-@dataclass
+@dataclasses.dataclass
 class MerossDeviceHandle:
     """A simplified thread-safe meross device ID."""
 
     name: str
     dev_id: str
 
+    def asdict(self) -> dict:
+        return dataclasses.asdict(self)
+
 
 class _OctoprintPsuMerossClientAsync:
     """Async client bi ts."""
-
+    
+    # a Key that identifies currently active session
+    #  (used to deduplicate login())
+    _current_session_key : str = None
     api_client: MerossHttpClient = None
 
     def __init__(self, cache_file: Path, logger):
@@ -88,16 +94,18 @@ class _OctoprintPsuMerossClientAsync:
         if self.api_client:
             await self.api_client.logout()
         self.api_client = None
-        del self.manager
-
-    _cache_session_token: Callable
 
     async def login(self, user: str, password: str):
+        if self.is_authenticated:
+            if self._cache.get_session_name_key(user, password) == self._current_session_key:
+                self._logger.debug("Already logged in.")
+            else:
+                await self.logout()
+
         restore_success = await self._try_restore_session(user, password)
         if restore_success:
             self._logger.debug("Restored saved session.")
             return True
-        await self.logout()
         try:
             self.api_client = await MerossHttpClient.async_from_user_password(
                 email=user, password=password
@@ -107,14 +115,9 @@ class _OctoprintPsuMerossClientAsync:
             self.api_client = None
         else:
             # save the session (and store a bound function to do that periodically later)
-            def _save_session_fn():
-                if self.api_client and self.api_client.cloud_credentials:
-                    self._cache.set_cloud_session_token(
-                        user, password, self.api_client.cloud_credentials
-                    )
-
-            self._cache_session_token = _save_session_fn
-            self._cache_session_token()
+            self._current_session_key = self._cache.set_cloud_session_token(
+                user, password, self.api_client.cloud_credentials
+            )
 
         return bool(self.api_client)  # Return 'True' on success
 
@@ -199,6 +202,7 @@ class _OctoprintPsuMerossClientAsync:
             await device.async_turn_on(channel=channel)
         else:
             await device.async_turn_off(channel=channel)
+        self._logger.debug(f"Sucessfully changed state of {dev_uuid!r} (channel {channel!r}).")
 
     async def is_on(self, dev_id: str) -> bool:
         (dev_uuid, channel) = self.parse_plugin_dev_id(dev_id)
@@ -218,16 +222,19 @@ class OctoprintPsuMerossClient:
             cache_file=cache_file, logger=self._logger.getChild("async_client")
         )
 
-    def login(self, user: str, password: str, sync: bool = False):
+    def login(self, user: str, password: str):
         """Login to the meross cloud.
 
         Returns `None` in async mode, or True/False (success state) in sync mode.
         """
+        if (not user) or (not password):
+            self._logger.info("No user/password configured, skipping login")
+            return False
+
         future = asyncio.run_coroutine_threadsafe(
             self._async_client.login(user, password), self.worker.loop
         )
-        if sync:
-            return future.result()
+        return future.result()
 
     def list_devices(self):
         if not self.is_authenticated:
@@ -238,12 +245,19 @@ class OctoprintPsuMerossClient:
         return future.result()
 
     def set_device_state(self, dev_id: str, state: bool):
+        if (not dev_id) or (not self.is_authenticated):
+            self._logger.info(f"Unable change device state for {dev_id!r} (auth state: {self.is_authenticated})")
+            return
+
         future = asyncio.run_coroutine_threadsafe(
             self._async_client.set_device_state(dev_id, state), self.worker.loop
         )
         return future.result()
 
     def is_on(self, dev_id: str):
+        if (not dev_id) or (not self.is_authenticated):
+            return False
+
         future = asyncio.run_coroutine_threadsafe(
             self._async_client.is_on(dev_id), self.worker.loop
         )
@@ -259,20 +273,3 @@ class OctoprintPsuMerossClient:
         if not self.is_authenticated:
             return False
         return False
-
-    def get_status(self) -> bool:
-        """Return True/False for on/off respectively."""
-        if not self.switch_operational:
-            self._logger.info(
-                "Unable to acquire switch status - Meross API is not operational (not authenticated?)"
-            )
-            return False
-        return True
-
-    def set_status(self, state: bool):
-        """Set the desired switch state."""
-        if not self.switch_operational:
-            self._logger.info(
-                "Unable to acquire switch status - Meross API is not operational (not authenticated?)"
-            )
-            return False

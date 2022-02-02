@@ -16,7 +16,7 @@ from pathlib import Path
 
 setuptools.setup(
     name="OctoPrint-PSUControl-Meross",
-    version="0.0.7.dev24",
+    version="0.0.7.dev35",
     description="Adds Meross Smart Plug support to OctoPrint-PSUControl",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",

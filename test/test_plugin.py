@@ -21,12 +21,13 @@ def plugin_manager(mocker, psucontrol_plugin):
 
 
 @pytest.fixture
-def psucontrol_meross(mocker, plugin_manager):
+def psucontrol_meross(mocker, plugin_manager, tmpdir):
     out = octoprint_psucontrol_meross.plugin.PSUControlMeross()
     out._logger = mocker.MagicMock(
         name="mock_logger", spec=["warning", "info", "debug", "getChild"]
     )
     out._plugin_manager = plugin_manager
+    out._data_folder = tmpdir
     # Called by the plugin core after performing all injections.
     # Override this to initialize your implementation.
     out.initialize()
