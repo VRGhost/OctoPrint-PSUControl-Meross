@@ -7,6 +7,7 @@ __copyright__ = (
 __plugin_name__ = "PSU Control - Meross"
 __plugin_pythoncompat__ = ">=3.7,<4"
 
+from . import exc
 from .plugin import PSUControlMeross
 
 
