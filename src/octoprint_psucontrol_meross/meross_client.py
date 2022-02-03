@@ -104,10 +104,7 @@ class _OctoprintPsuMerossClientAsync:
             f"current session key = {self._current_session_key!r}"
         )
         if self.is_authenticated:
-            if (
-                expected_session_key
-                == self._current_session_key
-            ):
+            if expected_session_key == self._current_session_key:
                 self._logger.debug("Already logged in.")
                 return True
             else:
