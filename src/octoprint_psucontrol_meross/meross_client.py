@@ -1,12 +1,12 @@
 """This module converts async meross-iot library to synchronous bindings flask handle can use."""
 import asyncio
+import dataclasses
 import hashlib
 import os
 import shelve
 import threading
 import time
 
-import dataclasses
 from pathlib import Path
 from typing import Callable, Iterable, Tuple
 
@@ -32,10 +32,10 @@ class MerossDeviceHandle:
 
 class _OctoprintPsuMerossClientAsync:
     """Async client bi ts."""
-    
+
     # a Key that identifies currently active session
     #  (used to deduplicate login())
-    _current_session_key : str = None
+    _current_session_key: str = None
     api_client: MerossHttpClient = None
 
     def __init__(self, cache_file: Path, logger):
@@ -96,9 +96,20 @@ class _OctoprintPsuMerossClientAsync:
         self.api_client = None
 
     async def login(self, user: str, password: str):
+        expected_session_key = self._cache.get_session_name_key(user, password)
+        self._logger.debug(
+            f"login called with user {user!r} "
+            f", expected session key = {expected_session_key!r} "
+            f"and current state is_authenticated = {self.is_authenticated}, "
+            f"current session key = {self._current_session_key!r}"
+        )
         if self.is_authenticated:
-            if self._cache.get_session_name_key(user, password) == self._current_session_key:
+            if (
+                expected_session_key
+                == self._current_session_key
+            ):
                 self._logger.debug("Already logged in.")
+                return True
             else:
                 await self.logout()
 
@@ -106,6 +117,7 @@ class _OctoprintPsuMerossClientAsync:
         if restore_success:
             self._logger.debug("Restored saved session.")
             return True
+        self._logger.info(f"Performing full auth login for the user {user!r}.")
         try:
             self.api_client = await MerossHttpClient.async_from_user_password(
                 email=user, password=password
@@ -202,7 +214,9 @@ class _OctoprintPsuMerossClientAsync:
             await device.async_turn_on(channel=channel)
         else:
             await device.async_turn_off(channel=channel)
-        self._logger.debug(f"Sucessfully changed state of {dev_uuid!r} (channel {channel!r}).")
+        self._logger.debug(
+            f"Sucessfully changed state of {dev_uuid!r} (channel {channel!r})."
+        )
 
     async def is_on(self, dev_id: str) -> bool:
         (dev_uuid, channel) = self.parse_plugin_dev_id(dev_id)
@@ -246,7 +260,9 @@ class OctoprintPsuMerossClient:
 
     def set_device_state(self, dev_id: str, state: bool):
         if (not dev_id) or (not self.is_authenticated):
-            self._logger.info(f"Unable change device state for {dev_id!r} (auth state: {self.is_authenticated})")
+            self._logger.info(
+                f"Unable change device state for {dev_id!r} (auth state: {self.is_authenticated})"
+            )
             return
 
         future = asyncio.run_coroutine_threadsafe(

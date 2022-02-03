@@ -24,7 +24,6 @@ class PSUControlMeross(
     def on_settings_initialized(self):
         self._logger.info(f"{self.__class__.__name__} loaded.")
         self._ensure_meross_login()
-        
 
     def _ensure_meross_login(self, user=None, password=None):
         """Ensures that we are logged in as user/pass
@@ -34,8 +33,8 @@ class PSUControlMeross(
         self._logger.debug(f"SETTINGS: {self._settings}, {type(self._settings)}")
         self._logger.debug(f"ALL DATA: {self._settings.get_all_data()}")
         if (not user) and (not password):
-            user = self._settings.get(['user_email'])
-            password = self._settings.get(['user_password'])
+            user = self._settings.get(["user_email"])
+            password = self._settings.get(["user_password"])
         return self.meross.login(user, password)
 
     def get_settings_defaults(self):
@@ -47,10 +46,16 @@ class PSUControlMeross(
 
     def get_settings_restricted_paths(self):
         return {
-            'admin': [
-                ["user_email", ],
-                ["user_password", ],
-                ["target_device_id", ],
+            "admin": [
+                [
+                    "user_email",
+                ],
+                [
+                    "user_password",
+                ],
+                [
+                    "target_device_id",
+                ],
             ],
         }
 
@@ -60,6 +65,11 @@ class PSUControlMeross(
 
     def get_settings_version(self):
         return 1
+
+    def get_template_configs(self):
+        return [
+            {"type": "settings", "custom_bindings": False},
+        ]
 
     def on_startup(self, host, port):
         psucontrol_helpers = self._plugin_manager.get_helpers("psucontrol")
@@ -76,17 +86,17 @@ class PSUControlMeross(
     def turn_psu_on(self):
         self._logger.debug("turn_psu_on")
         self._ensure_meross_login()
-        self.meross.set_device_state(self._settings.get(['target_device_id']), True)
+        self.meross.set_device_state(self._settings.get(["target_device_id"]), True)
 
     def turn_psu_off(self):
         self._logger.debug("turn_psu_off")
         self._ensure_meross_login()
-        self.meross.set_device_state(self._settings.get(['target_device_id']), False)
+        self.meross.set_device_state(self._settings.get(["target_device_id"]), False)
 
     def get_psu_state(self):
         self._logger.debug("get_psu_state")
         self._ensure_meross_login()
-        return self.meross.is_on(self._settings.get(['target_device_id']))
+        return self.meross.is_on(self._settings.get(["target_device_id"]))
 
     # Setting the location of the assets such as javascript
     def get_assets(self):
@@ -112,23 +122,23 @@ class PSUControlMeross(
             }
         elif event == "list_devices":
             # Ensure that we are logged in with the desired credentials
-            login_ok = self._ensure_meross_login(payload["user_email"], payload["user_password"])
+            login_ok = self._ensure_meross_login(
+                payload["user_email"], payload["user_password"]
+            )
             if login_ok:
-                rv = [
-                    dev.asdict()
-                    for dev in self.meross.list_devices()
-                ]
+                rv = [dev.asdict() for dev in self.meross.list_devices()]
             else:
                 rv = []
-            out = {
-                "rv": rv,
-                "error": "Unable to authenticate" if not login_ok else ""
-            }
+            out = {"rv": rv, "error": "Unable to authenticate" if not login_ok else ""}
         elif event == "set_device_state":
             # Ensure that we are logged in with the desired credentials
-            login_ok = self._ensure_meross_login(payload["user_email"], payload["user_password"])
+            login_ok = self._ensure_meross_login(
+                payload["user_email"], payload["user_password"]
+            )
             if login_ok:
-                rv = self.meross.set_device_state(payload['dev_id'], bool(payload['state']))
+                rv = self.meross.set_device_state(
+                    payload["dev_id"], bool(payload["state"])
+                )
             else:
                 rv = None
             out = {
