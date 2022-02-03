@@ -1,20 +1,22 @@
-<!-- ko ifnot: settings.plugins.psucontrol -->
-<span class="help-inline label label-important">This plugin requires <a href="https://plugins.octoprint.org/plugins/psucontrol/" target="_blank">PSU Control</a> in order to function. It can be installed from the Plugin Manager.</span>
-<!-- /ko -->
+<form class="form-horizontal" onsubmit="return false;">
+    <div class="alert alert-error alert-block" id="psucontrol_meross_error" style="display:none">Hello world!</div>
+    <div class="alert alert-info alert-block" id="psucontrol_meross_loading" style="display:none">
+        <i class="fas fa-sync"></i>
+        ... Talking to the backend ...
+    </div>
 
-<form class="form-horizontal">
     <h4>General</h4>
     <div class="control-group">
         <label class="control-label">Meross account email</label>
         <div class="controls">
-            <input type="text" class="input" data-bind="value: settings.plugins.psucontrol_meross.user_email">
-            <input type="password" class="input" data-bind="value: settings.plugins.psucontrol_meross.user_password">
+            <input type="text" class="input" data-bind="textInput: settings.plugins.psucontrol_meross.user_email" id="psucontrol_meross_user_email">
+            <input type="password" class="input" data-bind="textInput: settings.plugins.psucontrol_meross.user_password" id="psucontrol_meross_user_password">
+            <p><button type="button" class="btn btn-warning" id="psucontrol_meross_test_login">Test login</button></p>
         </div>
     </div>
     <div class="control-group">
-        <label class="control-label">Plug</label>
-        <div class="controls">
-            {{ plugin_psucontrol_meross }}
-        </div>
+        <label class="control-label" for="psucontrol_meross_device_list">Devices</label>
+        <select id="psucontrol_meross_device_list" data-bind="value: settings.plugins.psucontrol_meross.target_device_id">
+        </select>
     </div>
 </form>

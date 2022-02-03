@@ -1,12 +1,13 @@
-__VERSION__ = "0.0.7.dev7"
+__VERSION__ = "0.0.7.dev38"
 __author__ = "Ilja Orlovs <vrghost@gmail.com>"
 __license__ = "GNU Affero General Public License http://www.gnu.org/licenses/agpl.html"
 __copyright__ = (
     "Copyright (C) 2021 Ilja Orlovs - Released under terms of the AGPLv3 License"
 )
 __plugin_name__ = "PSU Control - Meross"
-__plugin_pythoncompat__ = ">=2.7,<4"
+__plugin_pythoncompat__ = ">=3.7,<4"
 
+from . import exc
 from .plugin import PSUControlMeross
 
 
