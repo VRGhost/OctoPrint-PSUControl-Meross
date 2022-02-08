@@ -1,4 +1,4 @@
-__VERSION__ = "0.0.7.dev38"
+__VERSION__ = "0.0.7.dev41"
 __author__ = "Ilja Orlovs <vrghost@gmail.com>"
 __license__ = "GNU Affero General Public License http://www.gnu.org/licenses/agpl.html"
 __copyright__ = (
@@ -14,3 +14,8 @@ from .plugin import PSUControlMeross
 def __plugin_load__():
     global __plugin_implementation__
     __plugin_implementation__ = PSUControlMeross()
+
+    global __plugin_hooks__
+    __plugin_hooks__ = {
+        "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
+    }

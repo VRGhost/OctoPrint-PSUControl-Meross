@@ -95,7 +95,7 @@ class _OctoprintPsuMerossClientAsync:
             await self.api_client.logout()
         self.api_client = None
 
-    async def login(self, user: str, password: str):
+    async def login(self, user: str, password: str, raise_exc: bool):
         expected_session_key = self._cache.get_session_name_key(user, password)
         self._logger.debug(
             f"login called with user {user!r} "
@@ -122,6 +122,8 @@ class _OctoprintPsuMerossClientAsync:
         except Exception:
             self._logger.exception("Error when trying to log in.")
             self.api_client = None
+            if raise_exc:
+                raise
         else:
             # save the session (and store a bound function to do that periodically later)
             self._current_session_key = self._cache.set_cloud_session_token(
@@ -233,7 +235,7 @@ class OctoprintPsuMerossClient:
             cache_file=cache_file, logger=self._logger.getChild("async_client")
         )
 
-    def login(self, user: str, password: str):
+    def login(self, user: str, password: str, raise_exc: bool = False):
         """Login to the meross cloud.
 
         Returns `None` in async mode, or True/False (success state) in sync mode.
@@ -243,7 +245,7 @@ class OctoprintPsuMerossClient:
             return False
 
         future = asyncio.run_coroutine_threadsafe(
-            self._async_client.login(user, password), self.worker.loop
+            self._async_client.login(user, password, raise_exc), self.worker.loop
         )
         return future.result()
 

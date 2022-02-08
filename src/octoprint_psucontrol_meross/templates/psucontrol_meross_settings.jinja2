@@ -1,22 +1,66 @@
-<form class="form-horizontal" onsubmit="return false;">
-    <div class="alert alert-error alert-block" id="psucontrol_meross_error" style="display:none">Hello world!</div>
-    <div class="alert alert-info alert-block" id="psucontrol_meross_loading" style="display:none">
-        <i class="fas fa-sync"></i>
-        ... Talking to the backend ...
-    </div>
+<form class="form-horizontal" onsubmit="return false;" id="psucontrol_meross_settings_form">
 
-    <h4>General</h4>
-    <div class="control-group">
-        <label class="control-label">Meross account email</label>
-        <div class="controls">
-            <input type="text" class="input" data-bind="textInput: settings.plugins.psucontrol_meross.user_email" id="psucontrol_meross_user_email">
-            <input type="password" class="input" data-bind="textInput: settings.plugins.psucontrol_meross.user_password" id="psucontrol_meross_user_password">
-            <p><button type="button" class="btn btn-warning" id="psucontrol_meross_test_login">Test login</button></p>
+    <div class="alert alert-block" data-bind="
+        visible: message.state.text,
+        css: {
+            'alert-error': (message.state.level() == 'error'),
+            'alert-info': (message.state.level() == 'info'),
+            'alert-success': (message.state.level() == 'success'),
+        }
+    ">
+        <i class="fas" data-bind="
+            css: {
+                'fa-times': (message.state.level() == 'error'),
+                'fa-sync': (message.state.level() == 'info'),
+                'fa-check': (message.state.level() == 'success'),            
+            }
+        "></i>
+        <div data-bind="text: message.state.text" style="display: inline-block">
+            Success!
         </div>
     </div>
+
+
+    <h3>General</h3>
     <div class="control-group">
-        <label class="control-label" for="psucontrol_meross_device_list">Devices</label>
-        <select id="psucontrol_meross_device_list" data-bind="value: settings.plugins.psucontrol_meross.target_device_id">
-        </select>
+        <h4>Account</h4>
+
+        <fieldset>
+            <legend>Meross Cloud</legend>
+            <div class="control-group">
+                <label class="control-label" for="settings-psucontrol-meross-login">Login:</label>
+                <div class="controls">
+                    <input type="text" id="settings-psucontrol-meross-login" class="input-block-level" type="text" data-bind="textInput: settings.user_email" required="">
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label" for="settings-psucontrol-meross-password">Password:</label>
+                <div class="controls">
+                    <input type="password" id="settings-psucontrol-meross-password" class="input-block-level" data-bind="textInput: settings.user_password">
+                </div>
+            </div>
+            <div class="control-group">
+                <div class="controls">
+                    <button type="button" class="btn" data-bind="click: test_meross_cloud_login">Test login</button>
+                </div>
+            </div>
+        </fieldset>
+        
+        <div class="control-group" title="">
+            <label class="control-label" for="psucontrol-meross-device-list">Device:</label>
+            <div class="controls">
+                <select 
+                    id="psucontrol-meross-device-list"
+                    class="input-block-level"
+                    data-bind="
+                        options: devices,
+                        optionsText: 'name',
+                        optionsValue: 'dev_id',
+                        value: settings.target_device_id,
+                        valueAllowUnset: true
+                    "
+                ></select>
+            </div>
+        </div>
     </div>
 </form>
