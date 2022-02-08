@@ -1,70 +1,127 @@
-function psucontrol_meross_show_error(msg) {
-    var el = $('#psucontrol_meross_error')
-    if(msg)
-    {
-        el.text(msg);
-        el.show();
+$(function() {
+    function OctoprintPsuControlMerossViewModel(parameters) {
+        var self = this;
+
+        self._g_settings = parameters[0];
+        self.settings = null;
+
+        self._ui_message = {
+            level: "info",
+            text: ""
+        }
+        self.devices =  ko.observableArray([]);
+        self.selected_device = ko.observable();
+
+        self.devices.extend({ rateLimit: 200 });
+
+        self.message = new function() {
+            this.state = {
+                level: ko.observable(),
+                text: ko.observable(),
+            }
+
+            this._idx_gen = 0;
+
+            this.set = function(level, text) {
+                this._idx_gen ++;
+                this.state.level(level);
+                this.state.text(text);
+
+                var thisCallId = this._idx_gen;
+                var _msgObj = this;
+                return function(){ _msgObj.hideIf(thisCallId); }
+            }
+
+            this.info = function (text) {
+                return this.set('info', text);
+            }
+
+            this.error = function (text) {
+                return this.set('error', text);
+            }
+
+            this.success = function (text) {
+                return this.set('success', text);
+            }
+
+            this.hide = function() {
+                return this.set(null, null);
+            }
+
+            this.hideIf = function(idx) {
+                // Hide the box only if the message ID didn't change since
+                if(this._idx_gen == idx) {
+                    this.hide();
+                }
+            }
+
+            this.ajaxWait = function() {
+                // Just a shorthand for 'running in the backend'
+                return this.info('... Talking to the backend ...');
+            }
+        };
+
+        self.onBeforeBinding = function () {
+            self.settings = self._g_settings.settings.plugins.psucontrol_meross;
+            self.message.hide();
+        }
+
+        self.onAfterBinding = function() {
+            self.fetch_plugin_status();
+        }
+
+        self.onSettingsBeforeSave = function () {
+            console.log("OctoprintPsuControlMerossViewModel:: onSettingsBeforeSave", self._g_settings.settings.plugins.psucontrol_meross);
+        }
+
+        self.fetch_plugin_status = function() {
+            // Fetch BE state
+            var ajaxDone = this.message.ajaxWait();
+            OctoPrint.simpleApiGet(
+                "psucontrol_meross",
+            ).done(function(response){
+                self.devices.removeAll()
+                for (device of response.device_list) {
+                    self.devices.push(device);
+                }
+            }).always(ajaxDone);
+        }
+
+        self.test_meross_cloud_login = function() {
+            var username = self.settings.user_email();
+            var password = self.settings.user_password();
+
+            if (!username || !password) {
+                self.message.error("Please provide both Meross cloud username and password.");
+                return;
+            }
+            
+            var ajaxDone = this.message.ajaxWait();
+            OctoPrint.simpleApiCommand(
+                "psucontrol_meross",
+                "try_login",
+                {
+                    "user_email": username,
+                    "user_password": password,
+                }
+            ).done(function(response){
+                // psucontrol_meross_show_error(response.error);
+                if(response.error) {
+                    self.message.error(response.rv);
+                }
+                else
+                {
+                    self.message.success(response.rv);
+                    self.fetch_plugin_status();
+                }
+            }).always(ajaxDone);
+        }
     }
-    else
-    {
-        el.hide();
-    }
-}
 
-function psucontrol_meross_show_comm() {
-    $('#psucontrol_meross_loading').show()
-}
-
-function psucontrol_meross_hide_comm() {
-    $('#psucontrol_meross_loading').hide()
-}
-
-document.getElementById("psucontrol_meross_test_login").onclick = function() {
-    psucontrol_meross_show_comm();
-
-	OctoPrint.simpleApiCommand(
-        "psucontrol_meross",
-        "try_login",
-        {
-            "user_email": document.getElementById("psucontrol_meross_user_email").value,
-            "user_password": document.getElementById("psucontrol_meross_user_password").value,
-        }
-    ).done(function(response){
-            psucontrol_meross_show_error(response.error);
-            console.log(response);
-    }).always(psucontrol_meross_hide_comm)
-}
-
-document.getElementById("psucontrol_meross_device_list").onclick = function() {
-    psucontrol_meross_show_comm();
-    OctoPrint.simpleApiCommand(
-        "psucontrol_meross",
-        "list_devices",
-        {
-            "user_email": document.getElementById("psucontrol_meross_user_email").value,
-            "user_password": document.getElementById("psucontrol_meross_user_password").value,
-        }
-    ).done(function(response){
-        psucontrol_meross_show_error(response.error);
-        if(response.error) {
-            return;
-        }
-        // No errors reported.
-        var dropdown = $("#psucontrol_meross_device_list");
-        var old_val = dropdown.val();
-        var old_dev_val_present = false;
-
-        dropdown.empty();
-        $.each(response.rv, function() {
-            dropdown.append($("<option />").val(this.dev_id).text(this.name));
-            old_dev_val_present = old_dev_val_present || (this.dev_id == old_val)
-        });
-
-        if(old_val && !old_dev_val_present) {
-            // Append a mock option for the original value
-            dropdown.append($("<option />").val(old_val).text("Unknown device (" + old_val + ")"));
-        }
-
-        dropdown.val(old_val);
-    }).always(psucontrol_meross_hide_comm);
-}
+    OCTOPRINT_VIEWMODELS.push({
+        construct: OctoprintPsuControlMerossViewModel,
+        additionalNames: [],
+        dependencies: ["settingsViewModel"],
+        elements: ["#psucontrol_meross_settings_form"]
+    });
+});

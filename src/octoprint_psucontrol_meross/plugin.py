@@ -25,7 +25,7 @@ class PSUControlMeross(
         self._logger.info(f"{self.__class__.__name__} loaded.")
         self._ensure_meross_login()
 
-    def _ensure_meross_login(self, user=None, password=None):
+    def _ensure_meross_login(self, user=None, password=None, raise_exc=False):
         """Ensures that we are logged in as user/pass
 
         (either provided or values from the settings).
@@ -35,7 +35,7 @@ class PSUControlMeross(
         if (not user) and (not password):
             user = self._settings.get(["user_email"])
             password = self._settings.get(["user_password"])
-        return self.meross.login(user, password)
+        return self.meross.login(user, password, raise_exc=raise_exc)
 
     def get_settings_defaults(self):
         return {
@@ -59,6 +59,10 @@ class PSUControlMeross(
             ],
         }
 
+    @property
+    def target_device_id(self):
+        return self._settings.get(["target_device_id"])
+
     def on_settings_save(self, data):
         self._logger.debug(f"on_settings_save: {data!r}")
         return super().on_settings_save(data)
@@ -68,7 +72,7 @@ class PSUControlMeross(
 
     def get_template_configs(self):
         return [
-            {"type": "settings", "custom_bindings": False},
+            {"type": "settings", "custom_bindings": True},
         ]
 
     def on_startup(self, host, port):
@@ -86,17 +90,17 @@ class PSUControlMeross(
     def turn_psu_on(self):
         self._logger.debug("turn_psu_on")
         self._ensure_meross_login()
-        self.meross.set_device_state(self._settings.get(["target_device_id"]), True)
+        self.meross.set_device_state(self.target_device_id, True)
 
     def turn_psu_off(self):
         self._logger.debug("turn_psu_off")
         self._ensure_meross_login()
-        self.meross.set_device_state(self._settings.get(["target_device_id"]), False)
+        self.meross.set_device_state(self.target_device_id, False)
 
     def get_psu_state(self):
         self._logger.debug("get_psu_state")
         self._ensure_meross_login()
-        return self.meross.is_on(self._settings.get(["target_device_id"]))
+        return self.meross.is_on(self.target_device_id)
 
     # Setting the location of the assets such as javascript
     def get_assets(self):
@@ -112,24 +116,23 @@ class PSUControlMeross(
         }
 
     def on_api_command(self, event, payload):
-        self._logger.info(f"ON_EVENT {event!r}")
+        self._logger.debug(f"ON_EVENT {event!r}")
         if event == "try_login":
-            out = {
-                "rv": self._ensure_meross_login(
-                    payload["user_email"], payload["user_password"]
-                ),
-                "error": False,
-            }
-        elif event == "list_devices":
-            # Ensure that we are logged in with the desired credentials
-            login_ok = self._ensure_meross_login(
-                payload["user_email"], payload["user_password"]
-            )
-            if login_ok:
-                rv = [dev.asdict() for dev in self.meross.list_devices()]
+
+            try:
+                success = self._ensure_meross_login(
+                    payload["user_email"], payload["user_password"], raise_exc=True
+                )
+            except Exception as err:
+                success = False
+                message = str(err)
             else:
-                rv = []
-            out = {"rv": rv, "error": "Unable to authenticate" if not login_ok else ""}
+                message = "Login successful."
+
+            out = {
+                "rv": message,
+                "error": (not success),
+            }
         elif event == "set_device_state":
             # Ensure that we are logged in with the desired credentials
             login_ok = self._ensure_meross_login(
@@ -149,5 +152,49 @@ class PSUControlMeross(
             raise NotImplementedError(event)
         return flask.jsonify(out)
 
+    def get_update_information(self):
+        from . import __VERSION__, __plugin_name__
+
+        return {
+            "psucontrol_meross": {
+                "displayName": __plugin_name__,
+                "displayVersion": __VERSION__,
+                "current": __VERSION__,
+                # version check: github repository
+                "type": "github_release",
+                "user": "VRGhost",
+                "repo": "OctoPrint-PSUControl-Meross",
+                "stable_branch": {
+                    "name": "Stable",
+                    "branch": "release",
+                    "commitish": ["release"],
+                },
+                "prerelease_branches": [
+                    {
+                        "name": "Prerelease",
+                        "branch": "main",
+                        "commitish": [
+                            "devel",
+                            "main",
+                            "release",
+                        ],
+                    }
+                ],
+                "prerelease": True,
+                "prerelease_channel": "main",
+                # update method: pip w/ dependency links
+                "pip": "https://github.com/VRGhost/OctoPrint-PSUControl-Meross/releases/download/"
+                "v{target_version}/OctoPrint_PSUControl_Meross-{target_version}-py3-none-any.whl",
+            }
+        }
+
     def on_api_get(self, request):
-        return flask.jsonify(hello="world")
+        return flask.jsonify(
+            {
+                "is_authenticated": self.meross.is_authenticated,
+                "target_device_id": self.target_device_id,
+                "device_list": [dev.asdict() for dev in self.meross.list_devices()]
+                if self.meross.is_authenticated
+                else (),
+            }
+        )
