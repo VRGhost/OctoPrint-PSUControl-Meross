@@ -1,0 +1,37 @@
+name: Mark Release
+on:
+  workflow_dispatch:
+    inputs:
+      verson_part:
+        description: "Part of the version to bump."
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - patch
+          - minor
+          - major
+
+jobs:
+  tag-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install dependencies
+        run: pip install build bump2version tox tox-gh-actions
+      - name: Bump version
+        id: apply_tags
+        run: |
+          bump2version patch
+      - name: Run tests
+        run: tox
+      - name: Push git tags
+        run: |
+          git config --global user.email "github+actions@gmail.com"
+          git config --global user.name "Actions"
+          git push --follow-tags
