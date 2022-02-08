@@ -1,4 +1,4 @@
-name: Mark Release
+name: Release
 on:
   workflow_dispatch:
     inputs:
@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: '3.7'
       - name: Install dependencies
-        run: pip install build bump2version tox tox-gh-actions
+        run: pip install bump2version tox tox-gh-actions
       - name: Bump version
         id: apply_tags
         run: |
@@ -49,8 +49,12 @@ jobs:
           ref: ${{needs.tag-release.outputs.release_tag}}
       - name: Set up Python
         uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
       - name: Build packages
-        run: python -m build --outdir dist/
+        run: |
+          pip install build
+          python -m build --outdir dist/
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
