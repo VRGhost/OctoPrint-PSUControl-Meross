@@ -39,3 +39,23 @@ jobs:
           git config --global user.email "github+actions@gmail.com"
           git config --global user.name "Actions"
           git push --follow-tags
+          echo ::set-output name=release_tag::$(git tag --points-at HEAD | grep '^v' | sort -nr | head -n1)
+  publish-package:
+    runs-on: ubuntu-latest
+    needs: tag-release
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{needs.tag-release.outputs.release_tag}}
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - name: Build packages
+        run: python -m build --outdir dist/
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/*.zip
+          prerelease: ${{ contains(github.ref, 'dev') || contains(github.ref, 'pre') }}
