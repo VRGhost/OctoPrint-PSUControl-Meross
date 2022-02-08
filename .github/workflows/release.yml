@@ -63,3 +63,4 @@ jobs:
             dist/*.tar.gz
             dist/*.zip
           prerelease: ${{ contains(github.ref, 'dev') || contains(github.ref, 'pre') }}
+          tag_name: ${{needs.tag-release.outputs.release_tag}}
