@@ -27,7 +27,11 @@ jobs:
       - name: Bump version
         id: apply_tags
         run: |
-          bump2version patch
+          git config --global user.email "github+actions@gmail.com"
+          git config --global user.name "Actions"
+          bump2version "${BUMPED_VERSION_PART}"
+        env:
+          BUMPED_VERSION_PART: ${{ github.event.inputs.verson_part }}
       - name: Run tests
         run: tox
       - name: Push git tags
