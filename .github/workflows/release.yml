@@ -16,6 +16,8 @@ on:
 jobs:
   tag-release:
     runs-on: ubuntu-latest
+    outputs:
+      release-tag: ${{ steps.publish-git-tags.outputs.release_tag }}
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
@@ -35,6 +37,7 @@ jobs:
       - name: Run tests
         run: tox
       - name: Push git tags
+        id: publish-git-tags
         run: |
           git config --global user.email "github+actions@gmail.com"
           git config --global user.name "Actions"
@@ -46,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          ref: ${{needs.tag-release.outputs.release_tag}}
+          ref: ${{needs.tag-release.outputs.release-tag}}
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
@@ -63,4 +66,3 @@ jobs:
             dist/*.tar.gz
             dist/*.zip
           prerelease: ${{ contains(github.ref, 'dev') || contains(github.ref, 'pre') }}
-          tag_name: ${{needs.tag-release.outputs.release_tag}}
