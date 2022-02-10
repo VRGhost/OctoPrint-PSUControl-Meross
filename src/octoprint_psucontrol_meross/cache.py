@@ -123,14 +123,23 @@ class AsyncCachedObject:
                 else:
                     return default
             else:
-                self._cached_key = await self._call(self.get_key)
-                self._cache_time = time.time()
-        return self._cached_value
+                if self._cached_value is not NO_VALUE:
+                    self._cached_key = await self._call(self.get_key)
+                    self._cache_time = time.time()
+
+        for maybe_rv in (self._cached_value, default):
+            if maybe_rv is not NO_VALUE:
+                return maybe_rv
+        return None  # final fallback
 
     def flush(self):
         """Flush cache."""
         self._cached_value = self._cached_key = NO_VALUE
         self._cache_time = 0
+
+    def cache_key(self):
+        """Non-async function whose value changes every time the cached object changes."""
+        return f"{self._cached_key}_{self._cache_time}"
 
     async def _cache_update_needed(self):
         if self.timeout and self.timeout > 0:

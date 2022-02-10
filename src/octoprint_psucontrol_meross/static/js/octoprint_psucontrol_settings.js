@@ -66,12 +66,8 @@ $(function() {
             self.message.hide();
         }
 
-        self.onAfterBinding = function() {
+        self.onSettingsShown = function() {
             self.fetch_plugin_status();
-        }
-
-        self.onSettingsBeforeSave = function () {
-            console.log("OctoprintPsuControlMerossViewModel:: onSettingsBeforeSave", self._g_settings.settings.plugins.psucontrol_meross);
         }
 
         self.fetch_plugin_status = function() {
