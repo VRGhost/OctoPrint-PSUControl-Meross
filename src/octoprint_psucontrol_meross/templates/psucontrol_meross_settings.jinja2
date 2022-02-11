@@ -57,9 +57,15 @@
                         optionsText: 'name',
                         optionsValue: 'dev_id',
                         value: settings.target_device_id,
-                        valueAllowUnset: true
+                        valueAllowUnset: false
                     "
                 ></select>
+            </div>
+        </div>
+        <div class="control-group">
+            <div class="controls">
+                <button type="button" class="btn" data-bind="click: fetch_plugin_status">Refresh device list</button>
+                <button type="button" class="btn" data-bind="click: toggle_device">Toggle selected device</button>
             </div>
         </div>
     </div>

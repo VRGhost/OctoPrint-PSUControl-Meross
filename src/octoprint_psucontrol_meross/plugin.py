@@ -30,8 +30,6 @@ class PSUControlMeross(
 
         (either provided or values from the settings).
         """
-        self._logger.debug(f"SETTINGS: {self._settings}, {type(self._settings)}")
-        self._logger.debug(f"ALL DATA: {self._settings.get_all_data()}")
         if (not user) and (not password):
             user = self._settings.get(["user_email"])
             password = self._settings.get(["user_password"])
@@ -112,7 +110,7 @@ class PSUControlMeross(
         return {
             "try_login": ("user_email", "user_password"),
             "list_devices": ("user_email", "user_password"),
-            "set_device_state": ("user_email", "user_password", "dev_id", "state"),
+            "toggle_device": ("user_email", "user_password", "dev_id"),
         }
 
     def on_api_command(self, event, payload):
@@ -122,7 +120,7 @@ class PSUControlMeross(
             try:
                 success = self._ensure_meross_login(
                     payload["user_email"], payload["user_password"], raise_exc=True
-                )
+                ).result()
             except Exception as err:
                 success = False
                 message = str(err)
@@ -133,20 +131,21 @@ class PSUControlMeross(
                 "rv": message,
                 "error": (not success),
             }
-        elif event == "set_device_state":
+        elif event == "toggle_device":
             # Ensure that we are logged in with the desired credentials
-            login_ok = self._ensure_meross_login(
-                payload["user_email"], payload["user_password"]
-            )
-            if login_ok:
-                rv = self.meross.set_device_state(
-                    payload["dev_id"], bool(payload["state"])
-                )
+            err = False
+            try:
+                self._ensure_meross_login(
+                    payload["user_email"], payload["user_password"], raise_exc=True
+                ).result()
+                rv = self.meross.toggle_device(payload["dev_id"]).result()
+            except Exception as exc:
+                err = message = str(exc)
             else:
-                rv = None
+                message = "success!" if rv else "Unexpected failure"
             out = {
-                "rv": rv,
-                "error": "Unable to authenticate" if not login_ok else "",
+                "rv": message,
+                "error": err,
             }
         else:
             raise NotImplementedError(event)
@@ -166,21 +165,15 @@ class PSUControlMeross(
                 "repo": "OctoPrint-PSUControl-Meross",
                 "stable_branch": {
                     "name": "Stable",
-                    "branch": "release",
-                    "commitish": ["release"],
+                    "branch": "main",
                 },
                 "prerelease_branches": [
                     {
                         "name": "Prerelease",
                         "branch": "main",
-                        "commitish": [
-                            "devel",
-                            "main",
-                            "release",
-                        ],
                     }
                 ],
-                "prerelease": True,
+                "prerelease": False,
                 "prerelease_channel": "main",
                 # update method: pip w/ dependency links
                 "pip": "https://github.com/VRGhost/OctoPrint-PSUControl-Meross/releases/download/"
@@ -189,12 +182,18 @@ class PSUControlMeross(
         }
 
     def on_api_get(self, request):
+        device_list = ()
+        if self.meross.is_authenticated:
+            device_list = [dev.asdict() for dev in self.meross.list_devices()]
         return flask.jsonify(
             {
                 "is_authenticated": self.meross.is_authenticated,
-                "target_device_id": self.target_device_id,
-                "device_list": [dev.asdict() for dev in self.meross.list_devices()]
-                if self.meross.is_authenticated
-                else (),
+                "target_device": {
+                    "id": self.target_device_id,
+                    "state": "on"
+                    if self.meross.is_on(self.target_device_id)
+                    else "off",
+                },
+                "device_list": device_list,
             }
         )

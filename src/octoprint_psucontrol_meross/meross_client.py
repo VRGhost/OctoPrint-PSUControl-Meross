@@ -7,14 +7,16 @@ import shelve
 import threading
 import time
 
+from concurrent.futures import Future
 from pathlib import Path
 from typing import Callable, Iterable, Tuple
 
 from meross_iot.http_api import MerossHttpClient
 from meross_iot.manager import MerossManager
-from meross_iot.model.enums import Namespace as MerossEvtNamespace
+from meross_iot.model.enums import Namespace as MerossEvtNamespace, OnlineStatus
+from meross_iot.model.exception import CommandTimeoutError
 
-from .cache import AsyncCachedObject, MerossCache
+from .cache import AsyncCachedObject, MerossCache, NO_VALUE
 from .exc import CacheGetError, MerossClientError
 from .threaded_worker import ThreadedWorker
 
@@ -37,6 +39,7 @@ class _OctoprintPsuMerossClientAsync:
     #  (used to deduplicate login())
     _current_session_key: str = None
     api_client: MerossHttpClient = None
+    is_on_cache: bool = None
 
     def __init__(self, cache_file: Path, logger):
         super().__init__()
@@ -56,10 +59,6 @@ class _OctoprintPsuMerossClientAsync:
             get_object=_get_manager_fn,
         )
 
-        async def _get_manager_id():
-            manager = await self.get_manager()
-            return id(manager)
-
         async def _async_device_discovery():
             self._logger.debug("Running async device discovery...")
             manager = await self.get_manager()
@@ -68,7 +67,7 @@ class _OctoprintPsuMerossClientAsync:
 
         self.async_device_discovery = AsyncCachedObject(
             enabled=(lambda: self.is_authenticated),
-            get_key=_get_manager_id,
+            get_key=self.get_manager.cache_key,
             get_object=_async_device_discovery,
             timeout=10 * 60,  # 10 minutes
         )
@@ -81,6 +80,7 @@ class _OctoprintPsuMerossClientAsync:
         if evt.namespace in (
             MerossEvtNamespace.SYSTEM_ONLINE,
             MerossEvtNamespace.SYSTEM_ALL,
+            MerossEvtNamespace.CONTROL_TOGGLEX,  # An unknown device is toggled
         ):
             # flush device list cache if a new device appeared online
             self.async_device_discovery.flush()
@@ -178,15 +178,27 @@ class _OctoprintPsuMerossClientAsync:
             return await cache_obj(default=None)
 
         async def _get_device_cache_key():
-            manager = await self.get_manager()
-            # dev_list is a cached tuple
-            dev_list = await self.async_device_discovery()
-            return (id(manager), id(dev_list))
+            return (
+                self.get_manager.cache_key(),
+                self.async_device_discovery.cache_key(),
+            )
 
         async def _find_device():
             for device in await self.async_device_discovery():
                 if device.uuid == dev_uuid:
-                    await device.async_update()
+                    if device.online_status is not OnlineStatus.ONLINE:
+                        self._logger.info(f"The device is {device.online_status}.")
+                        return NO_VALUE
+
+                    try:
+                        await device.async_update()
+                    except CommandTimeoutError:
+                        self._logger.error(
+                            f"Timeout getting device update for {dev_uuid!r}. Flushing device cache."
+                        )
+                        device.online_status = OnlineStatus.OFFLINE
+                        self.async_device_discovery.flush()
+                        return NO_VALUE
                     return device
             raise CacheGetError(dev_uuid)
 
@@ -222,8 +234,25 @@ class _OctoprintPsuMerossClientAsync:
         device = await self.get_controlled_device(dev_uuid)
         if not device:
             self._logger.error(f"Device {dev_id} not found.")
-            return False
-        return device.is_on(channel=channel)
+            out = False
+        else:
+            out = device.is_on(channel=channel)
+        # save a copy of result for async polling
+        self.is_on_cache = out
+        return out
+
+    async def toggle_device(self, dev_id: str) -> bool:
+        assert self.is_authenticated, "Must be authenticated"
+        (dev_uuid, channel) = self.parse_plugin_dev_id(dev_id)
+        device = await self.get_controlled_device(dev_uuid)
+        if not device:
+            self._logger.error(f"Device {dev_id} not found.")
+            return
+        await device.async_toggle(channel=channel)
+        self._logger.debug(
+            f"Sucessfully toggled the device {dev_uuid!r} (channel {channel!r})."
+        )
+        return True
 
 
 class OctoprintPsuMerossClient:
@@ -235,7 +264,7 @@ class OctoprintPsuMerossClient:
             cache_file=cache_file, logger=self._logger.getChild("async_client")
         )
 
-    def login(self, user: str, password: str, raise_exc: bool = False):
+    def login(self, user: str, password: str, raise_exc: bool = False) -> Future:
         """Login to the meross cloud.
 
         Returns `None` in async mode, or True/False (success state) in sync mode.
@@ -243,11 +272,9 @@ class OctoprintPsuMerossClient:
         if (not user) or (not password):
             self._logger.info("No user/password configured, skipping login")
             return False
-
-        future = asyncio.run_coroutine_threadsafe(
+        return asyncio.run_coroutine_threadsafe(
             self._async_client.login(user, password, raise_exc), self.worker.loop
         )
-        return future.result()
 
     def list_devices(self):
         if not self.is_authenticated:
@@ -257,26 +284,37 @@ class OctoprintPsuMerossClient:
         )
         return future.result()
 
-    def set_device_state(self, dev_id: str, state: bool):
+    def set_device_state(self, dev_id: str, state: bool) -> Future:
         if (not dev_id) or (not self.is_authenticated):
             self._logger.info(
                 f"Unable change device state for {dev_id!r} (auth state: {self.is_authenticated})"
             )
             return
 
-        future = asyncio.run_coroutine_threadsafe(
+        return asyncio.run_coroutine_threadsafe(
             self._async_client.set_device_state(dev_id, state), self.worker.loop
         )
-        return future.result()
 
-    def is_on(self, dev_id: str):
+    def toggle_device(self, dev_id: str) -> Future:
+        if (not dev_id) or (not self.is_authenticated):
+            self._logger.info(f"Unable change device state for {dev_id!r}")
+            return
+
+        return asyncio.run_coroutine_threadsafe(
+            self._async_client.toggle_device(dev_id), self.worker.loop
+        )
+
+    def is_on(self, dev_id: str, sync: bool = False):
         if (not dev_id) or (not self.is_authenticated):
             return False
 
         future = asyncio.run_coroutine_threadsafe(
             self._async_client.is_on(dev_id), self.worker.loop
         )
-        return future.result()
+        if sync:
+            return future.result()
+        else:
+            return self._async_client.is_on_cache
 
     @property
     def is_authenticated(self) -> bool:
