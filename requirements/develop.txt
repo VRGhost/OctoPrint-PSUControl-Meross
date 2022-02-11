@@ -2,4 +2,5 @@ pytest
 pytest-mock
 pytest-cov
 pytest-asyncio
+pyfakefs
 asyncmock  # py3.6 :-(
