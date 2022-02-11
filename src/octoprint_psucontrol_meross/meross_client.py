@@ -186,7 +186,6 @@ class _OctoprintPsuMerossClientAsync:
         async def _find_device():
             for device in await self.async_device_discovery():
                 if device.uuid == dev_uuid:
-                    print(device.online_status)
                     if device.online_status is not OnlineStatus.ONLINE:
                         self._logger.info(f"The device is {device.online_status}.")
                         return NO_VALUE
@@ -242,6 +241,19 @@ class _OctoprintPsuMerossClientAsync:
         self.is_on_cache = out
         return out
 
+    async def toggle_device(self, dev_id: str) -> bool:
+        assert self.is_authenticated, "Must be authenticated"
+        (dev_uuid, channel) = self.parse_plugin_dev_id(dev_id)
+        device = await self.get_controlled_device(dev_uuid)
+        if not device:
+            self._logger.error(f"Device {dev_id} not found.")
+            return
+        await device.async_toggle(channel=channel)
+        self._logger.debug(
+            f"Sucessfully toggled the device {dev_uuid!r} (channel {channel!r})."
+        )
+        return True
+
 
 class OctoprintPsuMerossClient:
     def __init__(self, cache_file: Path, logger):
@@ -282,6 +294,15 @@ class OctoprintPsuMerossClient:
 
         return asyncio.run_coroutine_threadsafe(
             self._async_client.set_device_state(dev_id, state), self.worker.loop
+        )
+
+    def toggle_device(self, dev_id: str) -> Future:
+        if (not dev_id) or (not self.is_authenticated):
+            self._logger.info(f"Unable change device state for {dev_id!r}")
+            return
+
+        return asyncio.run_coroutine_threadsafe(
+            self._async_client.toggle_device(dev_id), self.worker.loop
         )
 
     def is_on(self, dev_id: str, sync: bool = False):

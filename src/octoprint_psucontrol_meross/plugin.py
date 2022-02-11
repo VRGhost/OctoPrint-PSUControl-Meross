@@ -110,7 +110,7 @@ class PSUControlMeross(
         return {
             "try_login": ("user_email", "user_password"),
             "list_devices": ("user_email", "user_password"),
-            "set_device_state": ("user_email", "user_password", "dev_id", "state"),
+            "toggle_device": ("user_email", "user_password", "dev_id"),
         }
 
     def on_api_command(self, event, payload):
@@ -131,20 +131,21 @@ class PSUControlMeross(
                 "rv": message,
                 "error": (not success),
             }
-        elif event == "set_device_state":
+        elif event == "toggle_device":
             # Ensure that we are logged in with the desired credentials
-            login_ok = self._ensure_meross_login(
-                payload["user_email"], payload["user_password"]
-            )
-            if login_ok:
-                rv = self.meross.set_device_state(
-                    payload["dev_id"], bool(payload["state"])
-                )
+            err = False
+            try:
+                self._ensure_meross_login(
+                    payload["user_email"], payload["user_password"], raise_exc=True
+                ).result()
+                rv = self.meross.toggle_device(payload["dev_id"]).result()
+            except Exception as exc:
+                err = message = str(exc)
             else:
-                rv = None
+                message = "success!" if rv else "Unexpected failure"
             out = {
-                "rv": rv,
-                "error": "Unable to authenticate" if not login_ok else "",
+                "rv": message,
+                "error": err,
             }
         else:
             raise NotImplementedError(event)
