@@ -29,7 +29,7 @@ class MerossCache:
             if cache_file.exists():
                 os.unlink(cache_file)
             # Attempt one more time
-            self._shelve = shelve.open(cache_file)
+            self._shelve = shelve.open(os.fspath(cache_file))
         else:
             self._logger.debug(f"Sucessfully opened {cache_file!r} cache.")
         if self._shelve is None:
