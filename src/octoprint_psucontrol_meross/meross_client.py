@@ -14,11 +14,26 @@ from typing import Callable, Iterable, Tuple
 from meross_iot.http_api import MerossHttpClient
 from meross_iot.manager import MerossManager
 from meross_iot.model.enums import Namespace as MerossEvtNamespace, OnlineStatus
-from meross_iot.model.exception import CommandTimeoutError
+from meross_iot.model.exception import (
+    CommandError,
+    CommandTimeoutError,
+    MqttError,
+    UnconnectedError,
+    UnknownDeviceType,
+)
 
 from .cache import AsyncCachedObject, MerossCache, NO_VALUE
 from .exc import CacheGetError, MerossClientError
 from .threaded_worker import ThreadedWorker
+
+
+ANY_MEROSS_IOT_EXC = (
+    UnconnectedError,
+    CommandTimeoutError,
+    MqttError,
+    CommandError,
+    UnknownDeviceType,
+)
 
 
 @dataclasses.dataclass
@@ -109,7 +124,6 @@ class _OctoprintPsuMerossClientAsync:
                 return True
             else:
                 await self.logout()
-
         restore_success = await self._try_restore_session(user, password)
         if restore_success:
             self._logger.debug("Restored saved session.")
@@ -119,7 +133,7 @@ class _OctoprintPsuMerossClientAsync:
             self.api_client = await MerossHttpClient.async_from_user_password(
                 email=user, password=password
             )
-        except Exception:
+        except ANY_MEROSS_IOT_EXC:
             self._logger.exception("Error when trying to log in.")
             self.api_client = None
             if raise_exc:
@@ -129,7 +143,6 @@ class _OctoprintPsuMerossClientAsync:
             self._current_session_key = self._cache.set_cloud_session_token(
                 user, password, self.api_client.cloud_credentials
             )
-
         return bool(self.api_client)  # Return 'True' on success
 
     async def _try_restore_session(self, user: str, password: str) -> bool:

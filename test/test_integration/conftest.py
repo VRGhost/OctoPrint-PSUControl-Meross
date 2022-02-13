@@ -1,20 +1,33 @@
 import asyncio
 import concurrent.futures
+import unittest.mock
 
-
-import asyncmock
 import pytest
 
 import octoprint_psucontrol_meross
 
 
+class GhettoAsyncMock(unittest.mock.MagicMock):
+    """A temporary async mock replacement for python 3.6"""
+
+    # async def __call__(self, *args, **kwargs):
+    #     return super().__call__(*args, **kwargs)
+    def __call__(self, *args, **kwargs):
+        rv = super().__call__(*args, **kwargs)
+        if callable(rv):
+            fut = asyncio.Future()
+            fut.set_result(rv)
+            rv = fut
+        return rv
+
+
 @pytest.fixture(autouse=True)
 def mocked_meross_http_client(mocker):
     out = mocker.patch(
-        "octoprint_psucontrol_meross.meross_client.MerossHttpClient", spec=True
+        "octoprint_psucontrol_meross.meross_client.MerossHttpClient",
+        spec=True,
+        new_callable=GhettoAsyncMock,
     )
-    for async_fn in ("async_from_user_password",):
-        setattr(out, async_fn, asyncmock.AsyncMock(name=f"async_mock::{async_fn}"))
     return out
 
 

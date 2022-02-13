@@ -13,9 +13,9 @@ def test_on_settings_initialized(
     mock_shelve_data,
 ):
     octoprint_psu_meross_plugin.on_settings_initialized()
-    x = threaded_loop.wait_all_futures()
-    print(x[0])
-    mocked_meross_http_client.async_from_user_password.assert_called_once_with(
+    threaded_loop.wait_all_futures()
+    assert mocked_meross_http_client.async_from_user_password.called
+    mocked_meross_http_client.async_from_user_password.assert_called_with(
         email="settings::user_email::value", password="settings::user_password::value"
     )
     assert (
