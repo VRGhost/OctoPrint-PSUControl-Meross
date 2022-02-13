@@ -177,7 +177,7 @@ class PSUControlMeross(
                 "prerelease_channel": "main",
                 # update method: pip w/ dependency links
                 "pip": "https://github.com/VRGhost/OctoPrint-PSUControl-Meross/releases/download/"
-                "v{target_version}/OctoPrint_PSUControl_Meross-{target_version}-py3-none-any.whl",
+                "{target_version}/OctoPrint_PSUControl_Meross-{target_version}-py3-none-any.whl",
             }
         }
 
