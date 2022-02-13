@@ -70,4 +70,4 @@ jobs:
             dist/*.zip
           prerelease: ${{ contains(needs.tag-release.outputs.release-tag, 'dev') || contains(needs.tag-release.outputs.release-tag, 'pre') }}
           name: ${{needs.tag-release.outputs.release-version}}
-          tag_name: ${{needs.tag-release.outputs.release-tag}}
+          tag_name: ${{needs.tag-release.outputs.release-version}}
