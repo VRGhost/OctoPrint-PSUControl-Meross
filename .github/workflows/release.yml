@@ -7,14 +7,14 @@ on:
       - v*
 
 jobs:
+  test:
+    uses: "VRGhost/OctoPrint-PSUControl-Meross/.github/workflows/main.yml@main"
   publish-package:
     runs-on: ubuntu-latest
     steps:
       # - uses: actions/checkout@v2
-      # - name: Get Version number
-      #   run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      - name: Call Test Workflow
-        uses: "VRGhost/OctoPrint-PSUControl-Meross/.github/workflows/main.yml@main"
+      - name: Get Version number
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       # - name: Set up Python
       #   uses: actions/setup-python@v2
       #   with:
