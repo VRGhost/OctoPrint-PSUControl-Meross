@@ -1,11 +1,11 @@
 name: Build Dev Artifact
 on:
   workflow_dispatch: {}
-  workflow_run:
-    workflows: ["CI"]
-    branches: [develop]
-    types:
-      - completed
+  # workflow_run:
+  #   workflows: ["CI"]
+  #   branches: [develop]
+  #   types:
+  #     - completed
 
 jobs:
   publish:
