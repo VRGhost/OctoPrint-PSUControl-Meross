@@ -107,7 +107,7 @@ class _OctoprintPsuMerossClientAsync:
 
     async def logout(self):
         if self.api_client:
-            await self.api_client.logout()
+            await self.api_client.async_logout()
         self.api_client = None
 
     async def login(self, user: str, password: str, raise_exc: bool):
