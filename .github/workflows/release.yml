@@ -8,30 +8,29 @@ on:
 
 jobs:
   test:
-    # uses: "VRGhost/OctoPrint-PSUControl-Meross/.github/workflows/main.yml@main"
     uses: "./.github/workflows/main.yml"
   publish-package:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      # - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
       - name: Get Version number
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      # - name: Set up Python
-      #   uses: actions/setup-python@v2
-      #   with:
-      #     python-version: '3.7'
-      # - name: Build packages
-      #   run: |
-      #     pip install build
-      #     python -m build --outdir dist/
-      # - name: Release
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     files: |
-      #       dist/*.whl
-      #       dist/*.tar.gz
-      #       dist/*.zip
-      #     prerelease: ${{ contains(env.RELEASE_VERSION, 'dev') || contains(env.RELEASE_VERSION, 'pre') }}
-      #     name: ${{env.RELEASE_VERSION}}
-      #     tag_name: ${{env.RELEASE_VERSION}}
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Build packages
+        run: |
+          pip install build
+          python -m build --outdir dist/
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/*.zip
+          prerelease: ${{ contains(env.RELEASE_VERSION, 'dev') || contains(env.RELEASE_VERSION, 'pre') }}
+          name: ${{env.RELEASE_VERSION}}
+          tag_name: ${{env.RELEASE_VERSION}}
