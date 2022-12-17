@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     # uses: "VRGhost/OctoPrint-PSUControl-Meross/.github/workflows/main.yml@main"
-    uses: "./.github/workflows/main.yml@main"
+    uses: "./.github/workflows/main.yml"
   publish-package:
     needs: test
     runs-on: ubuntu-latest
