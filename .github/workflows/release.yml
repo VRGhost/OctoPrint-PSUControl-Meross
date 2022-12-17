@@ -10,11 +10,11 @@ jobs:
   publish-package:
     runs-on: ubuntu-latest
     steps:
-      - name: Call Test Workflow
-        uses: ./.github/workflows/main.yml
-      # - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
       - name: Get Version number
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Call Test Workflow
+        uses: ./.github/workflows/main.yml
       # - name: Set up Python
       #   uses: actions/setup-python@v2
       #   with:
