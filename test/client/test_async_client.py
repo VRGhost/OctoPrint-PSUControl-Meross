@@ -2,11 +2,9 @@ import logging
 import unittest.mock
 
 import asyncmock
+import meross_iot.http_api
 import pytest
 import pytest_asyncio
-
-
-import meross_iot.http_api
 
 from octoprint_psucontrol_meross import meross_client
 
