@@ -3,31 +3,31 @@ on:
   workflow_run:
     workflows: ["CI"]
     types: ["completed"]
-    # tags:
-    #   - v*
+    tags:
+      - v*
 
 jobs:
   publish-package:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Get Version number
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          ref: ${{needs.tag-release.outputs.release-tag}}
-      # - name: Set up Python
-      #   uses: actions/setup-python@v2
-      #   with:
-      #     python-version: '3.7'
-      # - name: Build packages
-      #   run: |
-      #     pip install build
-      #     python -m build --outdir dist/
-      # - name: Release
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     files: |
-      #       dist/*.whl
-      #       dist/*.tar.gz
-      #       dist/*.zip
-      #     prerelease: ${{ contains(needs.tag-release.outputs.release-tag, 'dev') || contains(needs.tag-release.outputs.release-tag, 'pre') }}
-      #     name: ${{needs.tag-release.outputs.release-version}}
-      #     tag_name: ${{needs.tag-release.outputs.release-version}}
+          python-version: '3.7'
+      - name: Build packages
+        run: |
+          pip install build
+          python -m build --outdir dist/
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/*.zip
+          prerelease: ${{ contains(env.RELEASE_VERSION, 'dev') || contains(env.RELEASE_VERSION, 'pre') }}
+          name: ${{env.RELEASE_VERSION}}
+          tag_name: ${{env.RELEASE_VERSION}}
