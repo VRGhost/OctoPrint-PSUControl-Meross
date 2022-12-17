@@ -26,5 +26,5 @@ setuptools.setup(
         "octoprint.plugin": ["psucontrol_meross = octoprint_psucontrol_meross"]
     },
     install_requires=["OctoPrint>=1.7.3", "meross-iot>=0.4"],
-    python_requires=">=3.6",
+    python_requires=">=3.7.3",
 )
