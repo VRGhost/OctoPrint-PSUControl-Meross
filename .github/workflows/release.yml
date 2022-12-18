@@ -25,7 +25,8 @@ jobs:
           pip install build
           python -m build --outdir dist/
           # XXX: Generate legacy names (TODO: fix version check code in the plugin)
-          cd dist && for l in $(ls -1 .); do cp $l $(echo $l | sed -e "s/-${{ env.RELEASE_VERSION }}/-v${{ env.RELEASE_VERSION }}/" ); done && cd ..
+          echo "s/-${ RELEASE_VERSION }/-v${ RELEASE_VERSION }/"
+          cd dist && for l in $(ls -1 .); do cp $l $(echo $l | sed -e "s/-${ RELEASE_VERSION }/-v${ RELEASE_VERSION }/" ); done && cd ..
       # - name: Release
       #   uses: softprops/action-gh-release@v1
       #   with:
