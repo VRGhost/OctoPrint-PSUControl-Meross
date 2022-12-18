@@ -1,14 +1,16 @@
 name: Release
 on:
   push:
+    branches:
+      - main
     tags:
       - v*
 
 jobs:
-  test:
-    uses: "./.github/workflows/main.yml"
+  # test:
+  #   uses: "./.github/workflows/main.yml"
   publish-package:
-    needs: test
+    # needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -23,14 +25,14 @@ jobs:
           pip install build
           python -m build --outdir dist/
           # XXX: Generate legacy names (TODO: fix version check code in the plugin)
-          cd dist && for l in $(ls -1 .); do cp $l $(echo $l | sed -e "s/-${env.RELEASE_VERSION}/-v${env.RELEASE_VERSION}/" ); done && cd ..
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            dist/*.whl
-            dist/*.tar.gz
-            dist/*.zip
-          prerelease: ${{ contains(env.RELEASE_VERSION, 'dev') || contains(env.RELEASE_VERSION, 'pre') }}
-          name: ${{env.RELEASE_VERSION}}
-          tag_name: ${{env.RELEASE_VERSION}}
+          cd dist && for l in $(ls -1 .); do cp $l $(echo $l | sed -e "s/-${{ env.RELEASE_VERSION }}/-v${{ env.RELEASE_VERSION }}/" ); done && cd ..
+      # - name: Release
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     files: |
+      #       dist/*.whl
+      #       dist/*.tar.gz
+      #       dist/*.zip
+      #     prerelease: ${{ contains(env.RELEASE_VERSION, 'dev') || contains(env.RELEASE_VERSION, 'pre') }}
+      #     name: ${{env.RELEASE_VERSION}}
+      #     tag_name: ${{env.RELEASE_VERSION}}
