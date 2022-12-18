@@ -39,7 +39,7 @@ class PSUControlMeross(
         return {
             "user_email": "",
             "user_password": "",
-            "target_device_id": "",
+            "target_device_ids": [],
         }
 
     def get_settings_restricted_paths(self):
@@ -52,21 +52,34 @@ class PSUControlMeross(
                     "user_password",
                 ],
                 [
-                    "target_device_id",
+                    "target_device_ids",
                 ],
             ],
         }
 
     @property
-    def target_device_id(self):
-        return self._settings.get(["target_device_id"])
+    def target_device_ids(self):
+        return self._settings.get(["target_device_ids"])
 
     def on_settings_save(self, data):
         self._logger.debug(f"on_settings_save: {data!r}")
         return super().on_settings_save(data)
 
+    def on_settings_migrate(self, target, current):
+        for (migrate_from, migrate_to) in zip(
+            range(current, target), range(current + 1, target + 1)
+        ):
+            if (migrate_from, migrate_to) == (1, 2):
+                # Migrate from settings v1 to v2
+                old_dev_id = self._settings.get(["target_device_id"])
+                if old_dev_id is not None:
+                    self._settings.set(["target_device_ids"], [old_dev_id])
+                    self._settings.remove(["target_device_id"])
+            else:
+                raise NotImplementedError([migrate_from, migrate_to])
+
     def get_settings_version(self):
-        return 1
+        return 2
 
     def get_template_configs(self):
         return [
@@ -88,17 +101,17 @@ class PSUControlMeross(
     def turn_psu_on(self):
         self._logger.debug("turn_psu_on")
         self._ensure_meross_login()
-        self.meross.set_device_state(self.target_device_id, True)
+        self.meross.set_devices_states(self.target_device_ids, True)
 
     def turn_psu_off(self):
         self._logger.debug("turn_psu_off")
         self._ensure_meross_login()
-        self.meross.set_device_state(self.target_device_id, False)
+        self.meross.set_devices_states(self.target_device_ids, False)
 
     def get_psu_state(self):
         self._logger.debug("get_psu_state")
         self._ensure_meross_login()
-        return self.meross.is_on(self.target_device_id)
+        return self.meross.is_on(self.target_device_ids)
 
     # Setting the location of the assets such as javascript
     def get_assets(self):
@@ -110,7 +123,7 @@ class PSUControlMeross(
         return {
             "try_login": ("user_email", "user_password"),
             "list_devices": ("user_email", "user_password"),
-            "toggle_device": ("user_email", "user_password", "dev_id"),
+            "toggle_devices": ("user_email", "user_password", "dev_ids"),
         }
 
     def on_api_command(self, event, payload):
@@ -188,12 +201,13 @@ class PSUControlMeross(
         return flask.jsonify(
             {
                 "is_authenticated": self.meross.is_authenticated,
-                "target_device": {
-                    "id": self.target_device_id,
-                    "state": "on"
-                    if self.meross.is_on(self.target_device_id)
-                    else "off",
-                },
+                "target_devices": [
+                    {
+                        "id": device_id,
+                        "state": "on" if self.meross.is_on([device_id]) else "off",
+                    }
+                    for device_id in self.target_device_ids
+                ],
                 "device_list": device_list,
             }
         )

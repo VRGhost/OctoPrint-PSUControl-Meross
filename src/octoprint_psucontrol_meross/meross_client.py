@@ -1,15 +1,10 @@
 """This module converts async meross-iot library to synchronous bindings flask handle can use."""
 import asyncio
 import dataclasses
-import hashlib
-import os
-import shelve
-import threading
-import time
 
 from concurrent.futures import Future
 from pathlib import Path
-from typing import Callable, Iterable, Tuple
+from typing import Sequence, Tuple
 
 from meross_iot.http_api import MerossHttpClient
 from meross_iot.manager import MerossManager
@@ -227,44 +222,60 @@ class _OctoprintPsuMerossClientAsync:
         (uuid, channel_id) = dev_id.split("::")
         return (uuid, int(channel_id))
 
-    async def set_device_state(self, dev_id: str, state: bool):
-        assert self.is_authenticated, "Must be authenticated"
-        (dev_uuid, channel) = self.parse_plugin_dev_id(dev_id)
-        device = await self.get_controlled_device(dev_uuid)
-        if not device:
-            self._logger.error(f"Device {dev_id} not found.")
-            return
-        if state:
-            await device.async_turn_on(channel=channel)
-        else:
-            await device.async_turn_off(channel=channel)
-        self._logger.debug(
-            f"Sucessfully changed state of {dev_uuid!r} (channel {channel!r})."
-        )
+    async def get_device_handles(self, dev_ids: Sequence[str]):
+        """Returns list of (dev_handle, channel)"""
+        if not self.is_authenticated:
+            self._logger.warning("get_device_handles:: not authenticated")
+            return []
 
-    async def is_on(self, dev_id: str) -> bool:
-        (dev_uuid, channel) = self.parse_plugin_dev_id(dev_id)
-        device = await self.get_controlled_device(dev_uuid)
-        if not device:
-            self._logger.error(f"Device {dev_id} not found.")
-            out = False
+        uuid_channel_pairs = [self.parse_plugin_dev_id(dev_id) for dev_id in dev_ids]
+        devices = await asyncio.gather(
+            *[
+                self.get_controlled_device(dev_uuid)
+                for (dev_uuid, _) in uuid_channel_pairs
+            ]
+        )
+        out = []
+        for (device_hanle, (dev_uuid, dev_channel)) in zip(devices, uuid_channel_pairs):
+            if not device_hanle:
+                self._logger.error(f"Device {dev_uuid!r} not found.")
+                continue
+            out.append((device_hanle, dev_channel))
+        return out
+
+    async def set_devices_states(self, dev_ids: Sequence[str], state: bool):
+        assert self.is_authenticated, "Must be authenticated"
+        dev_handles = await self.get_device_handles(dev_ids)
+        futures = []
+        for (device, channel) in dev_handles:
+            if state:
+                the_future = device.async_turn_on(channel=channel)
+            else:
+                the_future = device.async_turn_off(channel=channel)
+            futures.append(the_future)
+        await asyncio.gather(*futures)
+        self._logger.debug(f"Sucessfully changed state of {dev_ids!r}.")
+        return True
+
+    async def is_on(self, dev_ids: Sequence[str]) -> bool:
+        assert self.is_authenticated, "Must be authenticated"
+        dev_handles = await self.get_device_handles(dev_ids)
+        on_states = [device.is_on(channel=channel) for (device, channel) in dev_handles]
+        if on_states:
+            out = all(on_states)
         else:
-            out = device.is_on(channel=channel)
+            out = False
         # save a copy of result for async polling
         self.is_on_cache = out
         return out
 
-    async def toggle_device(self, dev_id: str) -> bool:
+    async def toggle_devices(self, dev_ids: Sequence[str]) -> bool:
         assert self.is_authenticated, "Must be authenticated"
-        (dev_uuid, channel) = self.parse_plugin_dev_id(dev_id)
-        device = await self.get_controlled_device(dev_uuid)
-        if not device:
-            self._logger.error(f"Device {dev_id} not found.")
-            return
-        await device.async_toggle(channel=channel)
-        self._logger.debug(
-            f"Sucessfully toggled the device {dev_uuid!r} (channel {channel!r})."
+        dev_handles = await self.get_device_handles(dev_ids)
+        await asyncio.gather(
+            *[device.async_toggle(channel=channel) for (device, channel) in dev_handles]
         )
+        self._logger.debug(f"Sucessfully toggled devices {dev_ids!r}.")
         return True
 
 
@@ -297,32 +308,32 @@ class OctoprintPsuMerossClient:
         )
         return future.result()
 
-    def set_device_state(self, dev_id: str, state: bool) -> Future:
-        if (not dev_id) or (not self.is_authenticated):
+    def set_devices_states(self, dev_ids: Sequence[str], state: bool) -> Future:
+        if (not dev_ids) or (not self.is_authenticated):
             self._logger.info(
-                f"Unable change device state for {dev_id!r} (auth state: {self.is_authenticated})"
+                f"Unable change device state for {dev_ids!r} (auth state: {self.is_authenticated})"
             )
             return
 
         return asyncio.run_coroutine_threadsafe(
-            self._async_client.set_device_state(dev_id, state), self.worker.loop
+            self._async_client.set_devices_states(dev_ids, state), self.worker.loop
         )
 
-    def toggle_device(self, dev_id: str) -> Future:
-        if (not dev_id) or (not self.is_authenticated):
-            self._logger.info(f"Unable change device state for {dev_id!r}")
+    def toggle_device(self, dev_ids: Sequence[str]) -> Future:
+        if (not dev_ids) or (not self.is_authenticated):
+            self._logger.info(f"Unable change device state for {dev_ids!r}")
             return
 
         return asyncio.run_coroutine_threadsafe(
-            self._async_client.toggle_device(dev_id), self.worker.loop
+            self._async_client.toggle_devices(dev_ids), self.worker.loop
         )
 
-    def is_on(self, dev_id: str, sync: bool = False):
-        if (not dev_id) or (not self.is_authenticated):
+    def is_on(self, dev_ids: Sequence[str], sync: bool = False):
+        if (not dev_ids) or (not self.is_authenticated):
             return False
 
         future = asyncio.run_coroutine_threadsafe(
-            self._async_client.is_on(dev_id), self.worker.loop
+            self._async_client.is_on(dev_ids), self.worker.loop
         )
         if sync:
             return future.result()
