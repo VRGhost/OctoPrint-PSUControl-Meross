@@ -10,7 +10,7 @@ $(function() {
             text: ""
         }
         self.devices =  ko.observableArray([]);
-        self.selected_device = ko.observable();
+        self.selected_devices = ko.observableArray([]);
 
         self.devices.extend({ rateLimit: 200 });
 
@@ -61,16 +61,20 @@ $(function() {
             }
         };
 
-        function ensure_device_is_listed(device_id) {
+        function ensure_devices_are_listed(device_ids) {
             // Ensure that an element with dev_id == device_id always exists
             //   in self.devices
-            var el_found = false;
-            for(el of self.devices()) {
-                el_found = el_found || (el.dev_id == device_id);
+            var missing_devices = [];
+            var known_device_ids = self.devices().map(el => el.dev_id);
+            for(test_dev_id of device_ids){
+                if(!known_device_ids.includes(test_dev_id)) {
+                    missing_devices.push(test_dev_id)
+                }
             }
-
-            if(!el_found) {
-                self.devices.push({dev_id: device_id, name: 'Unknown (' + device_id +')' });
+            console.log("missing_devices", missing_devices)
+            
+            for(missing_device_id of missing_devices) {
+                self.devices.push({dev_id: missing_device_id, name: 'Unknown (' + missing_device_id +')' });
             }
         }
 
@@ -78,11 +82,11 @@ $(function() {
             self.settings = self._g_settings.settings.plugins.psucontrol_meross;
             self.message.hide();
 
-            var orig_selection = self.settings.target_device_id();
+            var orig_selection = self.settings.target_device_ids();
             // Add a dummy element to the dropdown if there had been a device selected
             if(!!orig_selection)
             {
-                ensure_device_is_listed(orig_selection);
+                ensure_devices_are_listed(orig_selection);
             }
         }
 
@@ -96,21 +100,21 @@ $(function() {
             OctoPrint.simpleApiGet(
                 "psucontrol_meross",
             ).done(function(response){
-                var orig_selection = self.settings.target_device_id(); // Store the current selection (while the list is being re-populated)
+                var orig_selection = self.settings.target_device_ids(); // Store the current selection (while the list is being re-populated)
                 console.log("ORIG", orig_selection);
                 self.devices.removeAll()
                 for (device of response.device_list) {
                     self.devices.push(device);
                 }
-                ensure_device_is_listed(orig_selection)
-                self.settings.target_device_id(orig_selection);
+                ensure_devices_are_listed(orig_selection)
+                self.settings.target_device_ids(orig_selection);
             }).always(ajaxDone);
         }
 
         self.toggle_device = function() {
             var username = self.settings.user_email();
             var password = self.settings.user_password();
-            var device_id = self.settings.target_device_id();
+            var device_ids = self.settings.target_device_ids();
 
             if (!username || !password || !device_id) {
                 self.message.error("Missing login/password or no device selected.");
@@ -124,7 +128,7 @@ $(function() {
                 {
                     "user_email": username,
                     "user_password": password,
-                    "dev_id": device_id,
+                    "dev_ids": device_ids,
                 }
             ).done(function(response){
                 // psucontrol_meross_show_error(response.error);
