@@ -1,4 +1,4 @@
-__VERSION__ = "0.12.11"
+__VERSION__ = "0.12.12"
 __author__ = "Ilja Orlovs <vrghost@gmail.com>"
 __license__ = "GNU Affero General Public License http://www.gnu.org/licenses/agpl.html"
 __copyright__ = (
