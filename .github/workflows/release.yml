@@ -40,3 +40,7 @@ jobs:
           prerelease: ${{ contains(env.RELEASE_VERSION, 'dev') || contains(env.RELEASE_VERSION, 'pre') }}
           name: ${{env.RELEASE_VERSION}}
           tag_name: ${{env.RELEASE_VERSION}}
+      - name: Update stable-latest
+        run:
+          git tag -f stable-latest
+          git push --force origin stable-latest
