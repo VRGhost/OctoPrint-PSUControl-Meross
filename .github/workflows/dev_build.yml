@@ -1,32 +1,35 @@
 name: Build Dev Artifact
 on:
-  workflow_dispatch: {}
-  # workflow_run:
-  #   workflows: ["CI"]
-  #   branches: [develop]
-  #   types:
-  #     - completed
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+.dev[0-9]+"
 
 jobs:
-  publish:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  test:
+    uses: "./.github/workflows/main.yml"
+  publish-package:
+    needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-      - name: Install dependencies
-        run: pip install build bump2version
-      - name: Bump version
-        id: apply_tags
+      - uses: actions/checkout@v3
+      - name: Get Version number
         run: |
-          git config --global user.email "github+actions@gmail.com"
-          git config --global user.name "Actions"
-          bump2version --no-tag dev
-          git push
+          export RELEASE_VERSION="${GITHUB_REF#refs/*/}"  # Generates output of the 'v0.12.9' format
+          export RELEASE_VERSION="${RELEASE_VERSION:1}"   # `:}"` -- remove the 'v' prefix
+          echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
+          echo "Release version: ${RELEASE_VERSION}"
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.7'
+      - name: Build packages
+        run: |
+          pip install build
           python -m build --outdir dist/
+          # XXX: Generate legacy names (TODO: fix version check code in the plugin)
+          cd dist && for l in $(ls -1 .); do cp $l $(echo $l | sed -e "s/-${RELEASE_VERSION}/-v${RELEASE_VERSION}/" ); done && cd ..
       - name: Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: dev-build
           path: |
