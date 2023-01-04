@@ -116,8 +116,8 @@ $(function() {
             var password = self.settings.user_password();
             var device_ids = self.settings.target_device_ids();
 
-            if (!username || !password || !device_id) {
-                self.message.error("Missing login/password or no device selected.");
+            if (!username || !password || !device_ids) {
+                self.message.error("Missing login/password or no device(s) selected.");
                 return;
             }
             
