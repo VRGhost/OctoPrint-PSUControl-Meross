@@ -112,6 +112,7 @@ $(function() {
         }
 
         self.toggle_device = function() {
+            var api_base_url = self.settings.api_base_url();
             var username = self.settings.user_email();
             var password = self.settings.user_password();
             var device_ids = self.settings.target_device_ids();
@@ -126,6 +127,7 @@ $(function() {
                 "psucontrol_meross",
                 "toggle_device",
                 {
+                    "api_base_url": api_base_url,
                     "user_email": username,
                     "user_password": password,
                     "dev_ids": device_ids,
@@ -144,6 +146,7 @@ $(function() {
         }
 
         self.test_meross_cloud_login = function() {
+            var api_base_url = self.settings.api_base_url();
             var username = self.settings.user_email();
             var password = self.settings.user_password();
 
@@ -157,6 +160,7 @@ $(function() {
                 "psucontrol_meross",
                 "try_login",
                 {
+                    "api_base_url": api_base_url,
                     "user_email": username,
                     "user_password": password,
                 }
