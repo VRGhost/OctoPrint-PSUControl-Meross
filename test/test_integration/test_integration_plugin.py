@@ -16,7 +16,7 @@ def test_on_settings_initialized(
     threaded_loop.wait_all_futures()
     assert mocked_meross_http_client.async_from_user_password.called
     mocked_meross_http_client.async_from_user_password.assert_called_with(
-        email="settings::user_email::value", password="settings::user_password::value"
+        api_base_url="settings::api_base_url::value", email="settings::user_email::value", password="settings::user_password::value"
     )
     assert (
         mock_shelve_data[
