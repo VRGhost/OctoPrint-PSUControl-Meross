@@ -105,7 +105,7 @@ class _OctoprintPsuMerossClientAsync:
             await self.api_client.async_logout()
         self.api_client = None
 
-    async def login(self, user: str, password: str, raise_exc: bool):
+    async def login(self, api_base_url: str, user: str, password: str, raise_exc: bool):
         expected_session_key = self._cache.get_session_name_key(user, password)
         self._logger.debug(
             f"login called with user {user!r} "
@@ -126,7 +126,7 @@ class _OctoprintPsuMerossClientAsync:
         self._logger.info(f"Performing full auth login for the user {user!r}.")
         try:
             self.api_client = await MerossHttpClient.async_from_user_password(
-                email=user, password=password
+                api_base_url=api_base_url, email=user, password=password
             )
         except ANY_MEROSS_IOT_EXC:
             self._logger.exception("Error when trying to log in.")
@@ -236,7 +236,7 @@ class _OctoprintPsuMerossClientAsync:
             ]
         )
         out = []
-        for (device_hanle, (dev_uuid, dev_channel)) in zip(devices, uuid_channel_pairs):
+        for device_hanle, (dev_uuid, dev_channel) in zip(devices, uuid_channel_pairs):
             if not device_hanle:
                 self._logger.error(f"Device {dev_uuid!r} not found.")
                 continue
@@ -247,7 +247,7 @@ class _OctoprintPsuMerossClientAsync:
         assert self.is_authenticated, "Must be authenticated"
         dev_handles = await self.get_device_handles(dev_ids)
         futures = []
-        for (device, channel) in dev_handles:
+        for device, channel in dev_handles:
             if state:
                 the_future = device.async_turn_on(channel=channel)
             else:
@@ -288,7 +288,9 @@ class OctoprintPsuMerossClient:
             cache_file=cache_file, logger=self._logger.getChild("async_client")
         )
 
-    def login(self, user: str, password: str, raise_exc: bool = False) -> Future:
+    def login(
+        self, api_base_url: str, user: str, password: str, raise_exc: bool = False
+    ) -> Future:
         """Login to the meross cloud.
 
         Returns `None` in async mode, or True/False (success state) in sync mode.
@@ -297,7 +299,8 @@ class OctoprintPsuMerossClient:
             self._logger.info("No user/password configured, skipping login")
             return False
         return asyncio.run_coroutine_threadsafe(
-            self._async_client.login(user, password, raise_exc), self.worker.loop
+            self._async_client.login(api_base_url, user, password, raise_exc),
+            self.worker.loop,
         )
 
     def list_devices(self):

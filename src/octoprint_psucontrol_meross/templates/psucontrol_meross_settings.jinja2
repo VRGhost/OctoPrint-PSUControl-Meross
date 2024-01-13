@@ -28,6 +28,22 @@
         <fieldset>
             <legend>Meross Cloud</legend>
             <div class="control-group">
+                <label class="control-label" for="settings-psucontrol-meross-url">API URL:</label>
+                <div class="controls">
+                    <select
+                        id="settings-psucontrol-meross-url"
+                        class="input-block-level"
+                        data-bind="
+                            options: settings.api_urls,
+                            optionsText: 'name',
+                            optionsValue: 'url',
+                            selectedOptions: settings.api_base_url
+                        "
+                        required=""
+                    ></select>
+                </div>
+            </div>
+            <div class="control-group">
                 <label class="control-label" for="settings-psucontrol-meross-login">Login:</label>
                 <div class="controls">
                     <input type="text" id="settings-psucontrol-meross-login" class="input-block-level" type="text" data-bind="textInput: settings.user_email" required="">

@@ -25,18 +25,29 @@ class PSUControlMeross(
         self._logger.info(f"{self.__class__.__name__} loaded.")
         self._ensure_meross_login()
 
-    def _ensure_meross_login(self, user=None, password=None, raise_exc=False):
+    def _ensure_meross_login(
+        self, api_base_url=None, user=None, password=None, raise_exc=False
+    ):
         """Ensures that we are logged in as user/pass
 
         (either provided or values from the settings).
         """
-        if (not user) and (not password):
+        if not api_base_url:
+            api_base_url = self._settings.get(["api_base_url"])
+        if not user:
             user = self._settings.get(["user_email"])
+        if not password:
             password = self._settings.get(["user_password"])
-        return self.meross.login(user, password, raise_exc=raise_exc)
+        return self.meross.login(api_base_url, user, password, raise_exc=raise_exc)
 
     def get_settings_defaults(self):
         return {
+            "api_urls": [
+                {"name": "Asia-Pacific", "url": "iotx-ap.meross.com"},
+                {"name": "Europe", "url": "iotx-eu.meross.com"},
+                {"name": "US", "url": "iotx-us.meross.com"},
+            ],
+            "api_base_url": "iotx-eu.meross.com",
             "user_email": "",
             "user_password": "",
             "target_device_ids": [],
@@ -45,6 +56,9 @@ class PSUControlMeross(
     def get_settings_restricted_paths(self):
         return {
             "admin": [
+                [
+                    "api_base_url",
+                ],
                 [
                     "user_email",
                 ],
@@ -66,7 +80,7 @@ class PSUControlMeross(
         return super().on_settings_save(data)
 
     def on_settings_migrate(self, target, current):
-        for (migrate_from, migrate_to) in zip(
+        for migrate_from, migrate_to in zip(
             range(current, target), range(current + 1, target + 1)
         ):
             if (migrate_from, migrate_to) == (1, 2):
@@ -121,18 +135,25 @@ class PSUControlMeross(
 
     def get_api_commands(self):
         return {
-            "try_login": ("user_email", "user_password"),
-            "list_devices": ("user_email", "user_password"),
-            "toggle_devices": ("user_email", "user_password", "dev_ids"),
+            "try_login": ("api_base_url", "user_email", "user_password"),
+            "list_devices": ("api_base_url", "user_email", "user_password"),
+            "toggle_devices": (
+                "api_base_url",
+                "user_email",
+                "user_password",
+                "dev_ids",
+            ),
         }
 
     def on_api_command(self, event, payload):
         self._logger.debug(f"ON_EVENT {event!r}")
         if event == "try_login":
-
             try:
                 success = self._ensure_meross_login(
-                    payload["user_email"], payload["user_password"], raise_exc=True
+                    payload["api_base_url"],
+                    payload["user_email"],
+                    payload["user_password"],
+                    raise_exc=True,
                 ).result()
             except Exception as err:
                 success = False
@@ -149,7 +170,10 @@ class PSUControlMeross(
             err = False
             try:
                 self._ensure_meross_login(
-                    payload["user_email"], payload["user_password"], raise_exc=True
+                    payload["api_base_url"],
+                    payload["user_email"],
+                    payload["user_password"],
+                    raise_exc=True,
                 ).result()
                 rv = self.meross.toggle_device(payload["dev_id"]).result()
             except Exception as exc:
