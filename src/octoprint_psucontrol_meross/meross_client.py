@@ -123,7 +123,12 @@ class _OctoprintPsuMerossClientAsync:
         if restore_success:
             self._logger.debug("Restored saved session.")
             return True
-        self._logger.info(f"Performing full auth login for the user {user!r}.")
+        if len(api_base_url) > 0 and "https://" not in api_base_url[0]:
+            self._logger.info(f"Adding missing \"https://\" prefix to {api_base_url!r}.")
+            api_base_url = "https://" + api_base_url[0].replace("'", "")
+        else:
+            api_base_url = api_base_url[0]
+        self._logger.info(f"Performing full auth login for the user {user!r} against {api_base_url!r}.")
         try:
             self.api_client = await MerossHttpClient.async_from_user_password(
                 api_base_url=api_base_url, email=user, password=password
@@ -244,6 +249,7 @@ class _OctoprintPsuMerossClientAsync:
         return out
 
     async def set_devices_states(self, dev_ids: Sequence[str], state: bool):
+        self._logger.debug(f"Attempting to change state of {dev_ids!r}.")
         assert self.is_authenticated, "Must be authenticated"
         dev_handles = await self.get_device_handles(dev_ids)
         futures = []
@@ -270,6 +276,7 @@ class _OctoprintPsuMerossClientAsync:
         return out
 
     async def toggle_devices(self, dev_ids: Sequence[str]) -> bool:
+        self._logger.debug(f"Attempting to toggle devices {dev_ids!r}.")
         assert self.is_authenticated, "Must be authenticated"
         dev_handles = await self.get_device_handles(dev_ids)
         await asyncio.gather(
@@ -332,6 +339,7 @@ class OctoprintPsuMerossClient:
         )
 
     def is_on(self, dev_ids: Sequence[str], sync: bool = False):
+        self._logger.debug(f"Attempting to check if devices is on {dev_ids!r}.")
         if (not dev_ids) or (not self.is_authenticated):
             return False
 
