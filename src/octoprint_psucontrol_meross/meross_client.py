@@ -330,6 +330,7 @@ class OctoprintPsuMerossClient:
         )
 
     def toggle_device(self, dev_ids: Sequence[str]) -> Future:
+        self._logger.debug(f"toggle_device {dev_ids!r}.")
         if (not dev_ids) or (not self.is_authenticated):
             self._logger.info(f"Unable change device state for {dev_ids!r}")
             return

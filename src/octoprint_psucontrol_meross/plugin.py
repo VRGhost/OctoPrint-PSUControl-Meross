@@ -137,11 +137,11 @@ class PSUControlMeross(
         return {
             "try_login": ("api_base_url", "user_email", "user_password"),
             "list_devices": ("api_base_url", "user_email", "user_password"),
-            "toggle_devices": (
+            "toggle_device": (
                 "api_base_url",
                 "user_email",
                 "user_password",
-                "dev_ids",
+                "dev_ids"
             ),
         }
 
@@ -176,7 +176,7 @@ class PSUControlMeross(
                     payload["user_password"],
                     raise_exc=True,
                 ).result()
-                rv = self.meross.toggle_device(payload["dev_id"]).result()
+                rv = self.meross.toggle_device(payload["dev_ids"]).result()
             except Exception as exc:
                 err = message = str(exc)
             else:
