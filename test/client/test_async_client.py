@@ -52,7 +52,7 @@ async def test_login(test_client, mock_meross_iot_http_client, mock_meross_cache
     mock_meross_cache.get_cloud_session_token.return_value = None
     await test_client.login("api_url", "testuser", "password", raise_exc=True)
     mock_meross_iot_http_client.async_from_user_password.assert_called_once_with(
-        api_base_url=""https://+"api_url", email="testuser", password="password"
+        api_base_url=""https://"+api_url", email="testuser", password="password"
     )
 
 
