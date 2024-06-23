@@ -43,11 +43,11 @@ class PSUControlMeross(
     def get_settings_defaults(self):
         return {
             "api_urls": [
-                {"name": "Asia-Pacific", "url": "iotx-ap.meross.com"},
-                {"name": "Europe", "url": "iotx-eu.meross.com"},
-                {"name": "US", "url": "iotx-us.meross.com"},
+                {"name": "Asia-Pacific", "url": "https://iotx-ap.meross.com"},
+                {"name": "Europe", "url": "https://iotx-eu.meross.com"},
+                {"name": "US", "url": "https://iotx-us.meross.com"},
             ],
-            "api_base_url": "iotx-eu.meross.com",
+            "api_base_url": "https://iotx-eu.meross.com",
             "user_email": "",
             "user_password": "",
             "target_device_ids": [],
@@ -85,6 +85,7 @@ class PSUControlMeross(
         ):
             if (migrate_from, migrate_to) == (1, 2):
                 # Migrate from settings v1 to v2
+
                 old_dev_id = self._settings.get(["target_device_id"])
                 if old_dev_id is not None:
                     self._settings.set(["target_device_ids"], [old_dev_id])
@@ -108,7 +109,6 @@ class PSUControlMeross(
                 "does not support plugin registration."
             )
             return
-
         self._logger.debug("Registering plugin with PSUControl")
         psucontrol_helpers["register_plugin"](self)
 
@@ -128,6 +128,7 @@ class PSUControlMeross(
         return self.meross.is_on(self.target_device_ids)
 
     # Setting the location of the assets such as javascript
+
     def get_assets(self):
         return {
             "js": ["js/octoprint_psucontrol_settings.js"],
@@ -137,12 +138,7 @@ class PSUControlMeross(
         return {
             "try_login": ("api_base_url", "user_email", "user_password"),
             "list_devices": ("api_base_url", "user_email", "user_password"),
-            "toggle_devices": (
-                "api_base_url",
-                "user_email",
-                "user_password",
-                "dev_ids",
-            ),
+            "toggle_device": ("api_base_url", "user_email", "user_password", "dev_ids"),
         }
 
     def on_api_command(self, event, payload):
@@ -160,13 +156,14 @@ class PSUControlMeross(
                 message = str(err)
             else:
                 message = "Login successful."
-
             out = {
                 "rv": message,
                 "error": (not success),
             }
         elif event == "toggle_device":
+            self._logger.debug(f"ON_EVENT {event!r}")
             # Ensure that we are logged in with the desired credentials
+
             err = False
             try:
                 self._ensure_meross_login(
@@ -175,7 +172,7 @@ class PSUControlMeross(
                     payload["user_password"],
                     raise_exc=True,
                 ).result()
-                rv = self.meross.toggle_device(payload["dev_id"]).result()
+                rv = self.meross.toggle_device(payload["dev_ids"]).result()
             except Exception as exc:
                 err = message = str(exc)
             else:
