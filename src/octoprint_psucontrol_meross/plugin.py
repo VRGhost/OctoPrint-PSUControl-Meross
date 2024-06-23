@@ -43,11 +43,11 @@ class PSUControlMeross(
     def get_settings_defaults(self):
         return {
             "api_urls": [
-                {"name": "Asia-Pacific", "url": "https://iotx-ap.meross.com"},
-                {"name": "Europe", "url": "https://iotx-eu.meross.com"},
-                {"name": "US", "url": "https://iotx-us.meross.com"},
+                {"name": "Asia-Pacific", "url": "iotx-ap.meross.com"},
+                {"name": "Europe", "url": "iotx-eu.meross.com"},
+                {"name": "US", "url": "iotx-us.meross.com"},
             ],
-            "api_base_url": "https://iotx-eu.meross.com",
+            "api_base_url": "iotx-eu.meross.com",
             "user_email": "",
             "user_password": "",
             "target_device_ids": [],
