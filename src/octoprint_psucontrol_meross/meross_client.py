@@ -123,9 +123,9 @@ class _OctoprintPsuMerossClientAsync:
         if restore_success:
             self._logger.debug("Restored saved session.")
             return True
-        if len(api_base_url) > 0 and "https://" not in api_base_url[0]:
-            self._logger.info(f"Adding missing \"https://\" prefix to {api_base_url!r}.")
-            api_base_url = "https://" + api_base_url[0].replace("'", "")
+#        if len(api_base_url) > 0 and "https://" not in api_base_url[0]:
+#            self._logger.info(f"Adding missing \"https://\" prefix to {api_base_url!r}.")
+#            api_base_url = "https://" + api_base_url[0].replace("'", "")
         else:
             api_base_url = api_base_url[0]
         self._logger.info(f"Performing full auth login for the user {user!r} against {api_base_url!r}.")
