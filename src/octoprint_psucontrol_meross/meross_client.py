@@ -48,6 +48,7 @@ class _OctoprintPsuMerossClientAsync:
 
     # a Key that identifies currently active session
     #  (used to deduplicate login())
+
     _current_session_key: str = None
     api_client: MerossHttpClient = None
     is_on_cache: bool = None
@@ -58,6 +59,7 @@ class _OctoprintPsuMerossClientAsync:
         self._cache = MerossCache(cache_file, logger=logger.getChild("cache"))
 
         # Configure awaitable caches
+
         async def _get_manager_fn():
             manager = MerossManager(http_client=self.api_client)
             await manager.async_init()
@@ -94,6 +96,7 @@ class _OctoprintPsuMerossClientAsync:
             MerossEvtNamespace.CONTROL_TOGGLEX,  # An unknown device is toggled
         ):
             # flush device list cache if a new device appeared online
+
             self.async_device_discovery.flush()
             self._logger.debug("Device list cache flushed")
 
@@ -125,7 +128,9 @@ class _OctoprintPsuMerossClientAsync:
             self._logger.debug("Restored saved session.")
             return True
             if len(api_base_url) > 0 and "https://" not in api_base_url:
-                self._logger.info(f"Adding missing \"https://\" prefix to {api_base_url!r}.")
+                self._logger.info(
+                    f'Adding missing "https://" prefix to {api_base_url!r}.'
+                )
                 api_base_url = "https://" + api_base_url.replace("'", "")
         else:
             api_base_url = api_base_url
@@ -143,6 +148,7 @@ class _OctoprintPsuMerossClientAsync:
                 raise
         else:
             # save the session (and store a bound function to do that periodically later)
+
             self._current_session_key = self._cache.set_cloud_session_token(
                 user, password, self.api_client.cloud_credentials
             )
@@ -152,8 +158,8 @@ class _OctoprintPsuMerossClientAsync:
         old_session = self._cache.get_cloud_session_token(user, password)
         if not old_session:
             # Nothing to restore
-            return False
 
+            return False
         success = False
         try:
             self.api_client = await MerossHttpClient.async_from_cloud_creds(old_session)
@@ -171,10 +177,10 @@ class _OctoprintPsuMerossClientAsync:
             for channel in device.channels:
                 if channel.is_master_channel:
                     # Use plain device name for master channel
+
                     merged_name = device.name
                 else:
                     merged_name = f"{device.name}: {channel.name}"
-
                 out.append(
                     MerossDeviceHandle(
                         name=merged_name,
@@ -189,6 +195,7 @@ class _OctoprintPsuMerossClientAsync:
             cache_obj = self._controlled_device_cache[dev_uuid]
         except KeyError:
             # Not cached yet
+
             pass
         else:
             return await cache_obj(default=None)
@@ -205,7 +212,6 @@ class _OctoprintPsuMerossClientAsync:
                     if device.online_status is not OnlineStatus.ONLINE:
                         self._logger.info(f"The device is {device.online_status}.")
                         return NO_VALUE
-
                     try:
                         await device.async_update()
                     except CommandTimeoutError:
@@ -235,7 +241,6 @@ class _OctoprintPsuMerossClientAsync:
         if not self.is_authenticated:
             self._logger.warning("get_device_handles:: not authenticated")
             return []
-
         uuid_channel_pairs = [self.parse_plugin_dev_id(dev_id) for dev_id in dev_ids]
         devices = await asyncio.gather(
             *[
@@ -275,6 +280,7 @@ class _OctoprintPsuMerossClientAsync:
         else:
             out = False
         # save a copy of result for async polling
+
         self.is_on_cache = out
         return out
 
@@ -327,7 +333,6 @@ class OctoprintPsuMerossClient:
                 f"Unable change device state for {dev_ids!r} (auth state: {self.is_authenticated})"
             )
             return
-
         return asyncio.run_coroutine_threadsafe(
             self._async_client.set_devices_states(dev_ids, state), self.worker.loop
         )
@@ -337,7 +342,6 @@ class OctoprintPsuMerossClient:
         if (not dev_ids) or (not self.is_authenticated):
             self._logger.info(f"Unable change device state for {dev_ids!r}")
             return
-
         return asyncio.run_coroutine_threadsafe(
             self._async_client.toggle_devices(dev_ids), self.worker.loop
         )
@@ -346,7 +350,6 @@ class OctoprintPsuMerossClient:
         self._logger.debug(f"Attempting to check if devices is on {dev_ids!r}.")
         if (not dev_ids) or (not self.is_authenticated):
             return False
-
         future = asyncio.run_coroutine_threadsafe(
             self._async_client.is_on(dev_ids), self.worker.loop
         )
