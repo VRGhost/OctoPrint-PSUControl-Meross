@@ -1,4 +1,5 @@
 """This module converts async meross-iot library to synchronous bindings flask handle can use."""
+
 import asyncio
 import dataclasses
 
@@ -123,12 +124,14 @@ class _OctoprintPsuMerossClientAsync:
         if restore_success:
             self._logger.debug("Restored saved session.")
             return True
-#        if len(api_base_url) > 0 and "https://" not in api_base_url:
-#            self._logger.info(f"Adding missing \"https://\" prefix to {api_base_url!r}.")
-#            api_base_url = "https://" + api_base_url.replace("'", "")
+        #        if len(api_base_url) > 0 and "https://" not in api_base_url:
+        #            self._logger.info(f"Adding missing \"https://\" prefix to {api_base_url!r}.")
+        #            api_base_url = "https://" + api_base_url.replace("'", "")
         else:
             api_base_url = api_base_url
-        self._logger.info(f"Performing full auth login for the user {user!r} against {api_base_url!r}.")
+        self._logger.info(
+            f"Performing full auth login for the user {user!r} against {api_base_url!r}."
+        )
         try:
             self.api_client = await MerossHttpClient.async_from_user_password(
                 api_base_url=api_base_url, email=user, password=password
