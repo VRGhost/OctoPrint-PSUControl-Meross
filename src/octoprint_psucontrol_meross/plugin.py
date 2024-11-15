@@ -38,6 +38,7 @@ class PSUControlMeross(
             user = self._settings.get(["user_email"])
         if not password:
             password = self._settings.get(["user_password"])
+        api_base_url = api_base_url[0]
         return self.meross.login(api_base_url, user, password, raise_exc=raise_exc)
 
     def get_settings_defaults(self):
