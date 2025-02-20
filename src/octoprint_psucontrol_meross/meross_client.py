@@ -130,9 +130,9 @@ class _OctoprintPsuMerossClientAsync:
             api_base_url = str(api_base_url)
 
         # Check if https:// is in place otherwise add it
-        if len(api_base_url) > 0 and not api_base_url.startswith("https://"):
-            self._logger.info(f"Adding missing \"https://\" prefix to {api_base_url!r}.")
-            api_base_url = "https://" + api_base_url.replace("'", "") # Entfernen der Anführungszeichen ist wahrscheinlich unnötig
+#        if len(api_base_url) > 0 and not api_base_url.startswith("https://"):
+#            self._logger.info(f"Adding missing \"https://\" prefix to {api_base_url!r}.")
+#            api_base_url = "https://" + api_base_url.replace("'", "") # Entfernen der Anführungszeichen ist wahrscheinlich unnötig
                                                                         # da es sich um einen String handelt, aber es schadet nicht.
 
         self._logger.info(f"Performing full auth login for the user {user!r} against {api_base_url!r}.")
