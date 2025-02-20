@@ -301,6 +301,10 @@ class OctoprintPsuMerossClient:
         if (not user) or (not password):
             self._logger.info("No user/password configured, skipping login")
             return False
+
+        if not isinstance(api_base_url, list):
+            api_base_url = [api_base_url]
+            
         return asyncio.run_coroutine_threadsafe(
             self._async_client.login(api_base_url, user, password, raise_exc),
             self.worker.loop,
