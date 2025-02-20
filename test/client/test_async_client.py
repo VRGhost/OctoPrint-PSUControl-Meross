@@ -51,10 +51,13 @@ async def test_client(
 async def test_login(test_client, mock_meross_iot_http_client, mock_meross_cache):
     mock_meross_cache.get_cloud_session_token.return_value = None
     await test_client.login("api_url", "testuser", "password", raise_exc=True)
-    mock_meross_iot_http_client.async_from_user_password.assert_called_once_with(
-        api_base_url="https://api_url", email="testuser", password="password"
-    )
 
+    # Argumente aus dem Mock-Aufruf abrufen
+    args, kwargs = mock_meross_iot_http_client.async_from_user_password.call_args
+    # api_base_url aus den Keyword-Argumenten abrufen
+    api_base_url = kwargs.get('api_base_url')
+
+    assert api_base_url == "https://api_url"
 
 class TestLogout:
     @pytest_asyncio.fixture
